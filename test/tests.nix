@@ -150,6 +150,7 @@ let
       test.data.cdk-mintd-backend = cfg.cdk-mintd.lightningBackend;
 
       tests.lnurl-mint = cfg.lnurl-mint.enable;
+      test.data.lnurl-mint-backup-location = config.services.lnurl-mint.backup.location;
       test.data.cdk-mintd-mint-name = config.services.cdk-mintd.mintInfo.name;
       test.data.cdk-mintd-backup-location = config.services.cdk-mintd.backup.location;
 
@@ -419,11 +420,15 @@ let
     };
 
     lnurl-mint = {
+      # regtestBase: lnd needs mined blocks to sync before it serves
+      # AddInvoice (same reason as the netns variant below)
+      imports = with scenarios; [ regtestBase ];
       services.lnd.enable = true;
       services.lnurl-mint = {
         enable = true;
         mintUrl = "https://mint.example.com";
         lightningBackend = "lnd";
+        backup.enable = true;
       };
     };
 
