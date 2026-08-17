@@ -307,7 +307,7 @@ def _():
 
     # the LUD-06 payRequest is served
     machine.wait_until_succeeds(
-        f"curl -fsS http://{ip('lnurl-mint')}:8111/p | jq -e .withdrawLink"
+        f"curl -fsS http://{ip('lnurl-mint')}:8111/.well-known/lnurlp/_ | jq -e .withdrawLink"
     )
     # the callback reaches the funding source and returns a real invoice -
     # the end-to-end proof the backend wiring works (for cln, that the
@@ -319,10 +319,13 @@ def _():
     succeed(f"curl -fsS http://{ip('lnurl-mint')}:8111/ | grep -q lnurl-mint")
 
     # the sqlite snapshot backup produces a consistent copy of mint.db
-    succeed("systemctl start lnurl-mint-backup")
-    assert_matches("systemctl show -p ExecMainStatus --value lnurl-mint-backup", "^0$")
-    backup_location = test_data["lnurl-mint-backup-location"]
-    succeed(f"ls {backup_location}/lnurl-mint-*.sqlite")
+    # (only enabled in the plain scenario - the netns variant would need the
+    # backup unit mirrored into the namespace)
+    if test_data["lnurl-mint-backup"]:
+        succeed("systemctl start lnurl-mint-backup")
+        assert_matches("systemctl show -p ExecMainStatus --value lnurl-mint-backup", "^0$")
+        backup_location = test_data["lnurl-mint-backup-location"]
+        succeed(f"ls {backup_location}/lnurl-mint-*.sqlite")
 
 @test("joinmarket")
 def _():

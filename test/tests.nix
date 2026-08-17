@@ -150,6 +150,7 @@ let
       test.data.cdk-mintd-backend = cfg.cdk-mintd.lightningBackend;
 
       tests.lnurl-mint = cfg.lnurl-mint.enable;
+      test.data.lnurl-mint-backup = cfg.lnurl-mint.backup.enable;
       test.data.lnurl-mint-backup-location = config.services.lnurl-mint.backup.location;
       test.data.cdk-mintd-mint-name = config.services.cdk-mintd.mintInfo.name;
       test.data.cdk-mintd-backup-location = config.services.cdk-mintd.backup.location;

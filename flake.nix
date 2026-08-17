@@ -19,7 +19,9 @@
       inputs.flake-utils.follows = "flake-utils";
     };
     lnurl-mint = {
-      url = "github:dni/lnurl-mint/b76a221234e22b4534650e0ac13a7193b7dbde1e";
+      # pinned to a release tag; bump intentionally (run the lnurl-mint
+      # scenario when doing so)
+      url = "github:dni/lnurl-mint/v0.2.0";
       flake = false;
     };
   };
