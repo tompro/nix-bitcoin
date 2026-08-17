@@ -1,6 +1,8 @@
-> [!WARNING]
-> **Archived and unmaintained as of August 13, 2026.**
-> v0.0.139 is the final release; there will be no further updates or security fixes.
+> [!NOTE]
+> This fork continues [fort-nix/nix-bitcoin](https://github.com/fort-nix/nix-bitcoin),
+> which was archived in August 2026 (final release: v0.0.139). It carries the
+> project forward for our own deployments, with additions such as the CDK Cashu
+> mint and lnurl-mint (lnurlcash) services.
 
 <p align="center">
   <img
