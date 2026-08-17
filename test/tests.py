@@ -318,6 +318,12 @@ def _():
     # the frontend one-pager renders
     succeed(f"curl -fsS http://{ip('lnurl-mint')}:8111/ | grep -q lnurl-mint")
 
+    # the sqlite snapshot backup produces a consistent copy of mint.db
+    succeed("systemctl start lnurl-mint-backup")
+    assert_matches("systemctl show -p ExecMainStatus --value lnurl-mint-backup", "^0$")
+    backup_location = test_data["lnurl-mint-backup-location"]
+    succeed(f"ls {backup_location}/lnurl-mint-*.sqlite")
+
 @test("joinmarket")
 def _():
     assert_running("joinmarket")

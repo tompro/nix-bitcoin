@@ -680,6 +680,12 @@ immediately; if you can't accept that exposure for your users, set
 entirely. See "The observer race, plainly" in the lnurl-mint README.
 
 When `services.backups.enable` is set, the mint data directory is included
-in nix-bitcoin's central backups.
+in nix-bitcoin's central backups. Additionally, `services.lnurl-mint.backup.enable`
+runs a systemd timer (daily by default) taking `sqlite3 .backup` snapshots of
+mint.db into `dataDir/backups` (retention: 7) - consistent by construction,
+even mid-write, unlike the plain file copy the central backup makes (which
+the snapshots then ride along in). Restore discipline: an old snapshot
+resurrects already-burned bearer notes, so restore only after a total loss,
+never as a point-in-time rollback.
 
 Run `nodeinfo` to see the local address (and onion address, if enabled) of the mint.

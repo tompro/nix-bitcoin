@@ -103,6 +103,43 @@ let
       };
     };
 
+    backup = {
+      enable = mkEnableOption "automated SQLite snapshot backups of the mint database";
+
+      location = mkOption {
+        type = types.path;
+        default = "${cfg.dataDir}/backups";
+        description = ''
+          Directory where SQLite backup snapshots are written. Snapshots are
+          taken with sqlite's .backup, so they are consistent even when taken
+          mid-write - unlike the plain file copy services.backups makes of
+          the dataDir (which the default location then rides along in).
+          Restore discipline: an old snapshot resurrects already-burned
+          bearer notes, so restore only after a total loss, never as a
+          point-in-time rollback.
+        '';
+      };
+
+      frequency = mkOption {
+        type = types.str;
+        default = "daily";
+        example = "hourly";
+        description = ''
+          systemd calendar expression for the backup timer.
+          See systemd.time(7) for the format.
+        '';
+      };
+
+      retention = mkOption {
+        type = types.ints.unsigned;
+        default = 7;
+        description = ''
+          Number of backup snapshots to keep. Older snapshots are deleted
+          after each successful run. Set to 0 to keep all snapshots.
+        '';
+      };
+    };
+
     lnd = {
       address = mkOption {
         type = types.str;
@@ -325,5 +362,55 @@ in
     };
 
     services.backups.extraFiles = mkIf config.services.backups.enable [ cfg.dataDir ];
+
+    # sqlite .backup snapshots: consistent by construction, even mid-write -
+    # unlike the plain file copy services.backups makes of the dataDir above.
+    # With the default location (inside dataDir), snapshots ride along in the
+    # duplicity backup too.
+    systemd.services.lnurl-mint-backup = mkIf cfg.backup.enable {
+      description = "lnurl-mint SQLite snapshot backup";
+      serviceConfig = {
+        Type = "oneshot";
+        User = cfg.user;
+        Group = cfg.group;
+        ProtectSystem = "strict";
+        ReadWritePaths = [ cfg.dataDir cfg.backup.location ];
+        PrivateTmp = true;
+        ProtectHome = true;
+        NoNewPrivileges = true;
+        PrivateNetwork = true;
+        UMask = "0027";
+      };
+      script = ''
+        set -euo pipefail
+
+        install -d -m 750 -o ${cfg.user} -g ${cfg.group} '${cfg.backup.location}'
+
+        backup_dir='${cfg.backup.location}'
+        timestamp=$(date +%Y%m%d-%H%M%S)
+
+        ${pkgs.sqlite}/bin/sqlite3 '${cfg.dataDir}/mint.db' ".backup ''$backup_dir/lnurl-mint-''$timestamp.sqlite"
+
+        retention=${toString cfg.backup.retention}
+        if [ "$retention" -gt 0 ]; then
+          find "''$backup_dir" -maxdepth 1 -type f -name 'lnurl-mint-*.sqlite' -printf '%T@ %p\n' \
+            | sort -nr \
+            | tail -n +$((retention + 1)) \
+            | cut -d' ' -f2- \
+            | while read -r f; do
+                rm -f "''$f"
+              done
+        fi
+      '';
+    };
+
+    systemd.timers.lnurl-mint-backup = mkIf cfg.backup.enable {
+      description = "Timer for lnurl-mint SQLite snapshot backups";
+      wantedBy = [ "timers.target" ];
+      timerConfig = {
+        OnCalendar = cfg.backup.frequency;
+        Persistent = true;
+      };
+    };
   };
 }
