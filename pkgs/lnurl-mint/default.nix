@@ -49,7 +49,7 @@ in
 python3Packages.buildPythonApplication rec {
   pname = "lnurl-mint";
   # keep in sync with the lnurl-mint flake input's release tag (flake.nix)
-  version = "0.2.0";
+  version = "0.2.1";
   pyproject = true;
 
   inherit src;
