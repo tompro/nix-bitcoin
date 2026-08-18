@@ -259,7 +259,10 @@ let
       FUNDINGSOURCE_RUNE="$(tr -d '[:space:]' < '${credentialDir}/cln-rune')"
       export FUNDINGSOURCE_RUNE
     ''}
-    exec ${cfg.package}/bin/lnurl-mint --host ${nbLib.address cfg.address} --port ${toString cfg.port}
+    # --host is a bind address: pass cfg.address raw. nbLib.address would
+    # collapse 0.0.0.0 to 127.0.0.1 - it converts bind addresses to
+    # *connect* addresses (used for the FUNDINGSOURCE_URL defaults above).
+    exec ${cfg.package}/bin/lnurl-mint --host ${cfg.address} --port ${toString cfg.port}
   '';
 in
 {
