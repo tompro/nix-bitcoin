@@ -1,11 +1,11 @@
 #!/usr/bin/env nix-shell
-#! nix-shell -i bash -p gnupg gnused jq
+#! nix-shell -i bash -p gnupg gnused jq curl
 set -euo pipefail
 
 # Use this to start a debug shell at the location of this statement
 # . "${BASH_SOURCE[0]%/*}/../../helper/start-bash-session.sh"
 
-version=3.2.1
+version=3.3.1
 # You can also specify a rev instead:
 # rev=57eddac7f0b99b4fe84d91c0f4a50a4f7ccfe55f
 owner=mempool
@@ -31,8 +31,12 @@ updateSrc() {
         git clone --depth 1 --branch "$tag" -c advice.detachedHead=false $repo "$src"
         git -C "$src" checkout tags/$tag
         export GNUPGHOME=$TMPDIR
-        # Fetch wiz' key
+        # Fetch release signing keys:
+        # - wiz <wiz@mempool.space> (keyserver)
+        # - mononaut <mononaut@mempool.space> 523B596A78BB8495AA2EC45ABFD16BE592A9CD8D
+        #   (not on keyservers; published at https://github.com/mononaut.gpg)
         gpg --keyserver hkps://keyserver.ubuntu.com --recv-keys 913C5FF1F579B66CA10378DBA394E332255A6173 2> /dev/null
+        curl -fsSL https://github.com/mononaut.gpg | gpg --import 2> /dev/null
         git -C "$src" verify-tag $tag
         rev=$tag
     fi
