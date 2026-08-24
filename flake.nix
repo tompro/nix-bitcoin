@@ -15,7 +15,7 @@
       inputs.flake-utils.follows = "flake-utils";
     };
     cdk = {
-      url = "github:cashubtc/cdk/v0.17.1";
+      url = "github:cashubtc/cdk/v0.17.5";
       inputs.flake-utils.follows = "flake-utils";
     };
     lnurl-mint = {
