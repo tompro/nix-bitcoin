@@ -31,13 +31,38 @@ updateSrc() {
         git clone --depth 1 --branch "$tag" -c advice.detachedHead=false $repo "$src"
         git -C "$src" checkout tags/$tag
         export GNUPGHOME=$TMPDIR
-        # Fetch release signing keys:
+        # Expected release signing keys (full primary key fingerprints):
         # - wiz <wiz@mempool.space> (keyserver)
-        # - mononaut <mononaut@mempool.space> 523B596A78BB8495AA2EC45ABFD16BE592A9CD8D
+        # - mononaut <mononaut@mempool.space>
         #   (not on keyservers; published at https://github.com/mononaut.gpg)
+        expectedSigners="913C5FF1F579B66CA10378DBA394E332255A6173 523B596A78BB8495AA2EC45ABFD16BE592A9CD8D"
         gpg --keyserver hkps://keyserver.ubuntu.com --recv-keys 913C5FF1F579B66CA10378DBA394E332255A6173 2> /dev/null
         curl -fsSL https://github.com/mononaut.gpg | gpg --import 2> /dev/null
-        git -C "$src" verify-tag $tag
+        # Fail closed unless every expected signer key is present in the keyring
+        for fpr in $expectedSigners; do
+            if ! gpg --batch --with-colons --list-keys 2> /dev/null \
+               | awk -F: -v fpr="$fpr" '$1 == "fpr" && $10 == fpr { found = 1 } END { exit !found }'; then
+                echo "Error: expected release signing key $fpr is not in the keyring" >&2
+                exit 1
+            fi
+        done
+        # Verify the tag and compare the actual signer fingerprint exactly.
+        # --raw prints the machine-readable gpg status lines to stderr.
+        if ! gpgStatus=$(git -C "$src" verify-tag --raw $tag 2>&1); then
+            echo "Error: tag $tag has no valid signature" >&2
+            exit 1
+        fi
+        signerFpr=$(echo "$gpgStatus" | sed -nE 's/^\[GNUPG:\] VALIDSIG ([0-9A-F]{40}) .*/\1/p')
+        if [[ ! $signerFpr ]]; then
+            echo "Error: could not extract signer fingerprint for tag $tag" >&2
+            exit 1
+        fi
+        if [[ " $expectedSigners " != *" $signerFpr "* ]]; then
+            echo "Error: tag $tag was signed by unexpected key $signerFpr" >&2
+            echo "Expected one of: $expectedSigners" >&2
+            exit 1
+        fi
+        echo "Tag $tag verified: signed by expected key $signerFpr"
         rev=$tag
     fi
     rm -rf "$src"/.git
