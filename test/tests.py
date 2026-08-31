@@ -311,9 +311,11 @@ def _():
     )
     # the callback reaches the funding source and returns a real invoice -
     # the end-to-end proof the backend wiring works (for cln, that the
-    # auto-minted scoped rune was accepted)
+    # auto-minted scoped rune was accepted). Since v0.4.0 the comment param
+    # (LUD-25 comment protection: a hex-encoded 32-byte hashed secret) is
+    # mandatory - without it the mint rejects the callback with a 400.
     machine.wait_until_succeeds(
-        f"curl -fsS 'http://{ip('lnurl-mint')}:8111/p/cb?amount=50000' | jq -e .pr"
+        f"curl -fsS 'http://{ip('lnurl-mint')}:8111/p/cb?amount=50000&comment=0000000000000000000000000000000000000000000000000000000000000000' | jq -e .pr"
     )
     # the frontend one-pager renders
     succeed(f"curl -fsS http://{ip('lnurl-mint')}:8111/ | grep -q lnurl-mint")

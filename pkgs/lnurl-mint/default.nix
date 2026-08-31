@@ -45,14 +45,33 @@ let
       license = lib.licenses.mit;
     };
   };
+  # /docs (swagger-ui) is self-hosted since v0.3.0, but the assets are
+  # gitignored upstream - they are neither in the git tree nor in the wheel
+  # (hatchling excludes gitignored files). Fetch them separately, same as
+  # upstream's own nix/package.nix does.
+  swaggerUiVersion = "5.32.13";
+  swaggerUiBundle = pkgs.fetchurl {
+    url = "https://cdn.jsdelivr.net/npm/swagger-ui-dist@${swaggerUiVersion}/swagger-ui-bundle.js";
+    hash = "sha256-Xzvl2c9AzdYNyg2v6vh0P9hY0bO7cXu9rr9yATA/Y9c=";
+  };
+  swaggerUiCss = pkgs.fetchurl {
+    url = "https://cdn.jsdelivr.net/npm/swagger-ui-dist@${swaggerUiVersion}/swagger-ui.css";
+    hash = "sha256-nmF9msCvsOQwwRoXNm3oYk23zjTJnr0pdEPwBIzjCJk=";
+  };
 in
 python3Packages.buildPythonApplication rec {
   pname = "lnurl-mint";
   # keep in sync with the lnurl-mint flake input's release tag (flake.nix)
-  version = "0.2.1";
+  version = "0.4.0";
   pyproject = true;
 
   inherit src;
+
+  postPatch = ''
+    # into the source tree, so the checkPhase tests covering /docs find them
+    cp ${swaggerUiBundle} lnurl_mint/static/swagger-ui-bundle.js
+    cp ${swaggerUiCss} lnurl_mint/static/swagger-ui.css
+  '';
 
   # the fetched source has no .git for hatch-vcs to derive a version from
   env.SETUPTOOLS_SCM_PRETEND_VERSION = version;
@@ -96,6 +115,11 @@ python3Packages.buildPythonApplication rec {
     makeWrapper ${lib.getExe python3Packages.uvicorn} $out/bin/lnurl-mint \
       --add-flags "lnurl_mint.server:app" \
       --prefix PYTHONPATH : "$out/${pkgs.python3.sitePackages}:$PYTHONPATH"
+
+    # hatchling excludes the gitignored swagger-ui assets from the wheel -
+    # install them alongside the package or /docs 500s at runtime
+    cp ${swaggerUiBundle} $out/${pkgs.python3.sitePackages}/lnurl_mint/static/swagger-ui-bundle.js
+    cp ${swaggerUiCss} $out/${pkgs.python3.sitePackages}/lnurl_mint/static/swagger-ui.css
   '';
 
   nativeCheckInputs = [ python3Packages.pytest ];
