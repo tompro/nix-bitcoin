@@ -672,11 +672,12 @@ admin macaroon - scope it down (see the lnurl-mint README) to
 info:read`. For cln, the module mints its own rune on first start, already
 restricted to just the methods lnurl-mint calls.
 
-Note that a settled LUD-21 `/verify` response's `preimage` IS the bearer
-note's spend secret, served to any holder of the payment hash (which travels
-inside the invoice itself). Wallets must rotate freshly minted notes
-immediately; if you can't accept that exposure for your users, set
-`services.lnurl-mint.verifyEnabled = false`, which disables the endpoint
+Since v0.4.0, LUD-25 comment protection is mandatory: a settled mint's
+`preimage` is no longer the bearer note's spend secret, so the LUD-21
+`/verify` endpoint exposes nothing sensitive for new mints. Mint invoices
+created before v0.4.0 (preimage-keyed, where the preimage IS the spend
+secret) are not served by `/verify` at all - the mint answers 404 for
+them. `services.lnurl-mint.verifyEnabled = false` disables the endpoint
 entirely. See "The observer race, plainly" in the lnurl-mint README.
 
 When `services.backups.enable` is set, the mint data directory is included

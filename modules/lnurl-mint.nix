@@ -77,9 +77,10 @@ let
       description = ''
         VERIFY_ENABLED (LUD-21): serve /verify/{payment_hash} and advertise
         it in /p/cb and melt responses, so wallets without their own node
-        can poll settlement. Note: a settled mint response's preimage IS the
-        bearer note's spend secret, served to any holder of the payment hash
-        (which travels inside the invoice itself) - see lnurl-mint's README
+        can poll settlement. Since v0.4.0, comment protection is mandatory,
+        so a settled mint's preimage is no longer the bearer note's spend
+        secret; mint invoices created before v0.4.0 (preimage-keyed) are
+        not served by /verify at all (404) - see lnurl-mint's README
         section "The observer race, plainly". false disables the endpoint
         entirely (404).
       '';
