@@ -17,6 +17,7 @@ in
 , lnurl-mint ? null
 }:
 let self = {
+  btcpayserver = pkgs.callPackage ./btcpayserver { };
   clightning-rest = pkgs.callPackage ./clightning-rest { inherit (self) fetchNodeModules; };
   clightning-plugins = pkgs.lib.recurseIntoAttrs (import ./clightning-plugins pkgs self.nbPython3Packages);
   clnrest = pkgs.callPackage ./clnrest { inherit (self.pinned) clightning; };
@@ -55,7 +56,9 @@ let self = {
   generate-secrets = import ./generate-secrets-deprecated.nix;
   nixops19_09 = pkgs.callPackage ./nixops { };
 
-  pinned = import ./pinned.nix pkgs pkgsUnstable pkgs-25_05;
+  pinned = import ./pinned.nix pkgs pkgsUnstable pkgs-25_05 // {
+    inherit (self) btcpayserver;
+  };
 
   modulesPkgs = self // self.pinned;
 }; in self
