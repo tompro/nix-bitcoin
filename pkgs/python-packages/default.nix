@@ -27,13 +27,11 @@ rec {
     packageOverrides = pyPkgsOverrides;
   }).pkgs;
 
-  # joinmarket requires cython 3.0 via pkg bencoder.pyx.
-  # The python pkgs from nixpkgs-25.11 default to cython 3.1.
-  # Downgrading to 3.0 causes mass rebuilds, so we use python pkgs from nixpkgs-25.05 for joinmarket.
-  # The nixpkgs-25.05 dependency will be removed with the next joinmarket update.
-  # https://github.com/JoinMarket-Org/joinmarket-clientserver/issues/1787
+  # joinmarket (0.9.11) does not support Python 3.13: dependency `future`
+  # fails to evaluate for python3.13. Pin the joinmarket package set to
+  # Python 3.12 until joinmarket is updated.
   nbPython3PackagesJoinmarket =
-    (nbPkgs.pinned.pkgs-25_05.python3.override {
+    (nbPkgs.pinned.pkgs.python312.override {
       packageOverrides = self: super:
         (pyPkgsOverrides self super) // {
           ## Specific versions of packages that already exist in nixpkgs

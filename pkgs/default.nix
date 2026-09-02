@@ -8,11 +8,6 @@ in
     config = {};
     overlays = [];
   }
-, pkgs-25_05 ? import nixpkgsPinned.nixpkgs-25_05 {
-    inherit (pkgs.stdenv.hostPlatform) system;
-    config = {};
-    overlays = [];
-  }
 , cdk ? null
 , lnurl-mint ? null
 }:
@@ -56,7 +51,7 @@ let self = {
   generate-secrets = import ./generate-secrets-deprecated.nix;
   nixops19_09 = pkgs.callPackage ./nixops { };
 
-  pinned = import ./pinned.nix pkgs pkgsUnstable pkgs-25_05 // {
+  pinned = import ./pinned.nix pkgs pkgsUnstable // {
     inherit (self) btcpayserver;
   };
 
