@@ -1,13 +1,17 @@
 { lib, buildPythonPackage, fetchurl, cython, pytest, coverage }:
 
-buildPythonPackage rec {
+buildPythonPackage {
   pname = "bencoder.pyx";
-  version = "3.0.1";
+  # Unstable snapshot of upstream master: the 3.0.1 release (and the commit
+  # previously pinned here) fails to build with Cython 3 because `bencoder.pyx`
+  # references the removed Python 2 `long` builtin.
+  # Fixed upstream in https://github.com/whtsky/bencoder.pyx/commit/0a81b4e10cf297879148cf2b083a23eb006f6b5b
+  version = "3.0.1-unstable-2025-11-17";
   format = "setuptools";
 
   src = fetchurl {
-    url = "https://github.com/whtsky/bencoder.pyx/archive/9a47768f3ceba9df9e6fbaa7c445f59960889009.tar.gz";
-    sha256 = "1yh565xjbbhn49xjfms80ac8psjbzn66n8dcx0x8mn7zzjv06clz";
+    url = "https://github.com/whtsky/bencoder.pyx/archive/0a81b4e10cf297879148cf2b083a23eb006f6b5b.tar.gz";
+    sha256 = "1xm17ara2z4bm3hc6lh9hsc5mwma73xhckyv7b1p8ni89nnj692l";
   };
 
   nativeBuildInputs = [ cython ];
