@@ -1,4 +1,4 @@
-{ lib, buildPythonPackage, fetchFromGitHub, fetchpatch, secp256k1 }:
+{ lib, buildPythonPackage, fetchFromGitHub, secp256k1 }:
 
 buildPythonPackage rec {
   pname = "python-bitcointx";
@@ -15,11 +15,11 @@ buildPythonPackage rec {
   patches = [
     # Support libsecp256k1 v0.7, which renamed the `secp256k1_ec_privkey_*`
     # symbols to `secp256k1_ec_seckey_*`.
-    # Remove when a release containing this fix is packaged.
-    (fetchpatch {
-      url = "https://github.com/Simplexum/python-bitcointx/pull/91.diff";
-      hash = "sha256-CMtIwLDnWoKheCQYlNy1ywzAHwgpzgWxFVCPvu8xYCY=";
-    })
+    # Vendored copy of https://github.com/Simplexum/python-bitcointx/pull/91
+    # (vendored because fetchpatch normalization of the live PR diff is not
+    # stable across environments). Remove when a release containing this fix
+    # is packaged.
+    ./libsecp256k1-0.7-compat.patch
   ];
 
   postPatch = ''
