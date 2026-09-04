@@ -62,7 +62,7 @@ in
 python3Packages.buildPythonApplication rec {
   pname = "lnurl-mint";
   # keep in sync with the lnurl-mint flake input's release tag (flake.nix)
-  version = "0.4.0";
+  version = "0.6.1";
   pyproject = true;
 
   inherit src;
@@ -71,6 +71,19 @@ python3Packages.buildPythonApplication rec {
     # into the source tree, so the checkPhase tests covering /docs find them
     cp ${swaggerUiBundle} lnurl_mint/static/swagger-ui-bundle.js
     cp ${swaggerUiCss} lnurl_mint/static/swagger-ui.css
+
+    # test_verify_census_melt_direction sleeps a fixed 50ms for the
+    # background melt to reach its pay_invoice call before establishing the
+    # RPC-census baseline - too tight on a loaded CI runner (the late
+    # pay_invoice then leaks into the first asserted delta). Wait until the
+    # call is actually observed instead (bounded at 10s).
+    substituteInPlace tests/test_poc_rpc_census.py \
+      --replace-fail \
+        'time.sleep(0.05)' \
+        'for _ in range(200):
+            if census.deltas().get("pay_invoice"):
+                break
+            time.sleep(0.05)'
   '';
 
   # the fetched source has no .git for hatch-vcs to derive a version from
