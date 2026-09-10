@@ -13,16 +13,16 @@
         "rust-overlay": "rust-overlay"
       },
       "locked": {
-        "lastModified": 1786792114,
-        "narHash": "sha256-nIZAqqz8ZH88YiKjaiySTZIr/qeEXGqtOYm0MQjL8Kg=",
+        "lastModified": 1787744241,
+        "narHash": "sha256-5GrI1AhGZ1ZgcYsjbuAByGLVOyBPe4wxKyvKsHk0fmo=",
         "owner": "cashubtc",
         "repo": "cdk",
-        "rev": "211f26e0f747bd91a05626c91d7d948dec3211ab",
+        "rev": "43129596752412ed4b30f8fb8f49ec63650a5f6e",
         "type": "github"
       },
       "original": {
         "owner": "cashubtc",
-        "ref": "v0.17.5",
+        "ref": "v0.17.6",
         "repo": "cdk",
         "type": "github"
       }
