@@ -128,8 +128,10 @@ let
       services.btcpayserver = {
         lightningBackend = mkDefault "lnd";
         lbtc = mkDefault true;
+        nbxplorerStats = mkDefault true;
       };
       test.data.btcpayserver-lbtc = config.services.btcpayserver.lbtc;
+      test.data.btcpayserver-nbxplorer-stats = config.services.btcpayserver.nbxplorerStats;
 
       tests.joinmarket = cfg.joinmarket.enable;
       tests.joinmarket-yieldgenerator = cfg.joinmarket.yieldgenerator.enable;

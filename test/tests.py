@@ -242,6 +242,24 @@ def _():
     )
     # Test web server response
     assert_matches(f"curl -fsS -L {ip('btcpayserver')}:23000", "Welcome to BTCPay Server")
+    if test_data["btcpayserver-nbxplorer-stats"]:
+        # The env var must reach the service as a single, correctly quoted value
+        assert_matches(
+            "systemctl show btcpayserver -p Environment",
+            "BTCPAY_EXPLORERPOSTGRES=User ID=btcpayserver;Host=/run/postgresql;Database=nbxplorer",
+        )
+        # The btcpayserver role can connect to the nbxplorer DB and holds
+        # SELECT grants on NBXplorer's tables
+        machine.succeed(
+            "runuser -u btcpayserver -- psql -d nbxplorer -tAc 'SELECT 1'"
+        )
+        num_grants = machine.succeed(
+            'runuser -u btcpayserver -- psql -d nbxplorer -tAc "'
+            "SELECT count(*) FROM information_schema.role_table_grants "
+            "WHERE grantee = 'btcpayserver' AND privilege_type = 'SELECT'"
+            '"'
+        ).strip()
+        assert int(num_grants) > 0
 
 @test("rtl")
 def _():

@@ -45,6 +45,12 @@ let
         example = "btcpayserver";
         description = "The prefix for root-relative btcpayserver URLs.";
       };
+      nbxplorerStats = mkEnableOption ''
+        read-only access for btcpayserver to the NBXplorer Postgres database.
+        This lets the BTCPay UI show on-chain wallet stats (balances, UTXO
+        sets, history graphs). Works for all configured chains (BTC and LBTC)
+        because NBXplorer stores them in a single database
+      '';
       user = mkOption {
         type = types.str;
         default = "btcpayserver";
@@ -149,6 +155,18 @@ in {
         ALTER DATABASE "btcpaydb" OWNER TO "${cfg.btcpayserver.user}";
         ALTER DATABASE "nbxplorer" OWNER TO "${cfg.nbxplorer.user}";
       '
+    '' + optionalString cfg.btcpayserver.nbxplorerStats ''
+      # Read-only grants for the btcpayserver role on the nbxplorer schema
+      # (used for on-chain wallet stats). ALTER DEFAULT PRIVILEGES covers
+      # tables NBXplorer creates later (schema migrations on version bumps).
+      # All statements are idempotent.
+      psql -d nbxplorer -tAc '
+        GRANT CONNECT ON DATABASE "nbxplorer" TO "${cfg.btcpayserver.user}";
+        GRANT USAGE ON SCHEMA public TO "${cfg.btcpayserver.user}";
+        GRANT SELECT ON ALL TABLES IN SCHEMA public TO "${cfg.btcpayserver.user}";
+        ALTER DEFAULT PRIVILEGES FOR ROLE "${cfg.nbxplorer.user}" IN SCHEMA public
+          GRANT SELECT ON TABLES TO "${cfg.btcpayserver.user}";
+      '
     '';
 
     systemd.tmpfiles.rules = [
@@ -233,6 +251,17 @@ in {
       wants = [ "nbxplorer.service" ]
               ++ optional (cfg.btcpayserver.lightningBackend != null) "${cfg.btcpayserver.lightningBackend}.service";
       after = requires ++ wants;
+      # Give btcpayserver read access to NBXplorer's Postgres DB for on-chain
+      # wallet stats. NBXplorer keeps all chains (BTC, LBTC) in the single
+      # database "nbxplorer", so one connection string covers lbtc, too.
+      # `explorer.postgres` in env-var spelling (same mechanism as upstream's
+      # Docker deployment). NOTE: use the `environment` option, not
+      # `serviceConfig.Environment` — the latter is written to the unit
+      # unquoted and systemd splits the connection string at its spaces,
+      # which makes btcpayserver crash on startup.
+      environment = mkIf cfg.btcpayserver.nbxplorerStats {
+        BTCPAY_EXPLORERPOSTGRES = "User ID=${cfg.btcpayserver.user};Host=/run/postgresql;Database=nbxplorer";
+      };
       serviceConfig = nbLib.defaultHardening // {
         ExecStart = ''
           ${cfg.btcpayserver.package}/bin/btcpayserver --conf=${configFile} \
