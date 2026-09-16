@@ -28,7 +28,7 @@
     lnurl-mint = {
       # pinned to a release tag; bump intentionally (run the lnurl-mint
       # scenario when doing so)
-      url = "github:lnurlcash/lnurl-mint/v0.8.2";
+      url = "github:lnurlcash/lnurl-mint/v0.9.2";
       flake = false;
     };
   };
