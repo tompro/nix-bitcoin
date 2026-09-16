@@ -151,16 +151,16 @@
     "lnurl-mint": {
       "flake": false,
       "locked": {
-        "lastModified": 1789142772,
-        "narHash": "sha256-5/Y7VLj2RqXuwGw6Bi7HrImY9p+38pQvLkdkCpmRhoQ=",
+        "lastModified": 1789497235,
+        "narHash": "sha256-YJQNxon0zK1eYwHwz0vj4njV0HgFPAojBg9h7DAQFbE=",
         "owner": "lnurlcash",
         "repo": "lnurl-mint",
-        "rev": "b757f194676843cf23dc0a76faca3e7a01dae381",
+        "rev": "8fb3bef12c26c8ed2868ecfad80cf22bcbc21432",
         "type": "github"
       },
       "original": {
         "owner": "lnurlcash",
-        "ref": "v0.7.3",
+        "ref": "v0.8.2",
         "repo": "lnurl-mint",
         "type": "github"
       }
