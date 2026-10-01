@@ -1,0 +1,176 @@
+diff --git a/tests/test_auth_data_hunter_poc.py b/tests/test_auth_data_hunter_poc.py
+index d742ee2..e90afde 100644
+--- a/tests/test_auth_data_hunter_poc.py
++++ b/tests/test_auth_data_hunter_poc.py
+@@ -48,14 +48,38 @@ def test_f1_verify_disclosure_requires_verify_enabled(client: TestClient, node:
+     assert notes.note_amount(bearer_id(victim_h)) == 50_000
+ 
+ 
+-def test_f3_withdraw_rejects_pending_note_with_spec_reason(client: TestClient, node: FakeNode, mint_note):
++def test_f3_withdraw_rejects_pending_note_with_spec_reason(client: TestClient, node: FakeNode, mint_note, monkeypatch):
++    import asyncio
+     import threading
+ 
++    import lnurl_mint.router as router_module
+     from tests.conftest import fake_invoice
+ 
+     k1 = mint_note(10_000)
+     node.pay_delay = 2.0  # hold the melt in-flight
+ 
++    # Hold the pending window open deterministically: the melt helper only
++    # waits until the note is marked pending; the window is then kept open
++    # solely by FakeNode's pay_delay sleep, which a loaded machine can
++    # schedule the probe below past - the payment completes and the note is
++    # already spent or restored before the "pending" assertion. Gate the
++    # payment on an event set once the probes are done (the 30s bound
++    # merely prevents a hang if the test fails before setting it).
++    # Patched on router_module, not on node: the node fixture wires the
++    # fake in as router_module.pay_invoice (a bound method captured at
++    # fixture setup), so the instance attribute is not on the call path.
++    payment_gate = threading.Event()
++    real_pay_invoice = router_module.pay_invoice
++
++    async def gated_pay_invoice(invoice, config, fee_limit_msat):
++        for _ in range(600):
++            if payment_gate.is_set():
++                break
++            await asyncio.sleep(0.05)
++        return await real_pay_invoice(invoice, config, fee_limit_msat)
++
++    monkeypatch.setattr(router_module, "pay_invoice", gated_pay_invoice)
++
+     # TestClient runs background tasks before returning, so drive the melt
+     # from a thread to observe the pending window from the main one
+     melt_resp = {}
+@@ -78,6 +102,7 @@ def test_f3_withdraw_rejects_pending_note_with_spec_reason(client: TestClient, n
+         rotate = client.get(f"/w/cb?k1={k1}&p1={h}").json()
+         assert rotate["reason"] == "pending"
+     finally:
++        payment_gate.set()
+         node.pay_delay = 0.0
+         t.join()
+     assert melt_resp["r"].json()["status"] == "OK"
+diff --git a/tests/test_poc_f2_pending_info_leak.py b/tests/test_poc_f2_pending_info_leak.py
+index 8e34958..4ca066e 100644
+--- a/tests/test_poc_f2_pending_info_leak.py
++++ b/tests/test_poc_f2_pending_info_leak.py
+@@ -23,10 +23,12 @@ the same event loop (production's own concurrency shape).
+ """
+ 
+ import asyncio
++import threading
+ 
+ import httpx
+ from fastapi.testclient import TestClient
+ 
++import lnurl_mint.router as router_module
+ from lnurl_mint.db import notes
+ from lnurl_mint.server import app
+ from tests.conftest import fake_invoice, fresh_secret, k1_id
+@@ -34,7 +36,7 @@ from tests.conftest import fake_invoice, fresh_secret, k1_id
+ VALUE = 10_000
+ 
+ 
+-def test_w_reports_pending_during_melt_window(client: TestClient, node, mint_note):
++def test_w_reports_pending_during_melt_window(client: TestClient, node, mint_note, monkeypatch):
+     k1 = mint_note(VALUE)
+     # materialize it once so /w is a pure read of note state
+     assert client.get(f"/w?k1={k1}").json()["maxWithdrawable"] == VALUE
+@@ -42,6 +44,28 @@ def test_w_reports_pending_during_melt_window(client: TestClient, node, mint_not
+     node.pay_delay = 0.5  # the background melt stays in flight long enough to probe
+     probes: dict[str, dict] = {}
+ 
++    # Hold the pending window open deterministically: the melt helper only
++    # waits until the note is marked pending; the window is then kept open
++    # solely by FakeNode's pay_delay sleep, which a loaded machine can
++    # schedule the probe below past - the payment completes and the note is
++    # already spent or restored before the "pending" assertion. Gate the
++    # payment on an event set once the probes are done (the 30s bound
++    # merely prevents a hang if the test fails before setting it).
++    # Patched on router_module, not on node: the node fixture wires the
++    # fake in as router_module.pay_invoice (a bound method captured at
++    # fixture setup), so the instance attribute is not on the call path.
++    payment_gate = threading.Event()
++    real_pay_invoice = router_module.pay_invoice
++
++    async def gated_pay_invoice(invoice, config, fee_limit_msat):
++        for _ in range(600):
++            if payment_gate.is_set():
++                break
++            await asyncio.sleep(0.05)
++        return await real_pay_invoice(invoice, config, fee_limit_msat)
++
++    monkeypatch.setattr(router_module, "pay_invoice", gated_pay_invoice)
++
+     async def gather():
+         transport = httpx.ASGITransport(app=app)
+         async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as ac:
+@@ -50,10 +74,16 @@ def test_w_reports_pending_during_melt_window(client: TestClient, node, mint_not
+                 return (await ac.get(f"/w/cb?k1={k1}&pr={fake_invoice(VALUE)}")).json()
+ 
+             async def probe():
+-                await asyncio.sleep(0.05)  # let the melt reach mark_pending + background pay
++                # wait until the melt has actually reserved the note - the
++                # fixed 0.05s sleep raced the melt's own startup under load
++                for _ in range(200):
++                    if notes.pending_melts():
++                        break
++                    await asyncio.sleep(0.05)
+                 probes["w"] = (await ac.get(f"/w?k1={k1}")).json()
+                 _, h = fresh_secret()
+                 probes["rotate"] = (await ac.get(f"/w/cb?k1={k1}&p1={h}")).json()
++                payment_gate.set()
+ 
+             return await asyncio.gather(melt(), probe())
+ 
+diff --git a/tests/test_verify.py b/tests/test_verify.py
+index 12f824a..52a7ef8 100644
+--- a/tests/test_verify.py
++++ b/tests/test_verify.py
+@@ -1,9 +1,12 @@
++import asyncio
+ import sqlite3
++import threading
+ from hashlib import sha256
+ 
+ import bolt11
+ from fastapi.testclient import TestClient
+ 
++import lnurl_mint.router as router_module
+ from lnurl_mint.config import settings
+ from lnurl_mint.db import NoteStore, notes
+ from tests.conftest import fake_invoice, fresh_secret, k1_id, melt_in_background
+@@ -178,10 +181,33 @@ def test_melt_verify_reports_unsettled_while_genuinely_pending(client: TestClien
+     payment_hash = bolt11.decode(pr).payment_hash
+     node.pay_delay = 0.3
+ 
++    # Hold the pending window open deterministically: the melt helper only
++    # waits until the note is marked pending; the window is then kept open
++    # solely by FakeNode's pay_delay sleep, which a loaded machine can
++    # schedule the probe below past - the payment completes and the note is
++    # already spent or restored before the "pending" assertion. Gate the
++    # payment on an event set once the probes are done (the 30s bound
++    # merely prevents a hang if the test fails before setting it).
++    # Patched on router_module, not on node: the node fixture wires the
++    # fake in as router_module.pay_invoice (a bound method captured at
++    # fixture setup), so the instance attribute is not on the call path.
++    payment_gate = threading.Event()
++    real_pay_invoice = router_module.pay_invoice
++
++    async def gated_pay_invoice(invoice, config, fee_limit_msat):
++        for _ in range(600):
++            if payment_gate.is_set():
++                break
++            await asyncio.sleep(0.05)
++        return await real_pay_invoice(invoice, config, fee_limit_msat)
++
++    monkeypatch.setattr(router_module, "pay_invoice", gated_pay_invoice)
++
+     thread = melt_in_background(client, k1, pr, monkeypatch)
+     result = client.get(f"/verify/{payment_hash}").json()
+     assert result == {"status": "OK", "settled": False, "pr": pr}
+     assert "preimage" not in result
++    payment_gate.set()
+     thread.join()
+     assert thread.result["melt"]["status"] == "OK"  # type: ignore[attr-defined]
+ 
