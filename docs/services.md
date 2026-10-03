@@ -625,9 +625,18 @@ before deploying:
 echo "word1 word2 ... word12" > secrets/cdk-mintd-mnemonic
 ```
 
-The mnemonic is loaded at runtime via systemd `LoadCredential` and passed to CDK
-with `--seed-file`. It is never written to the Nix store, a persistent `.env` file,
-or the service process environment.
+The mnemonic is loaded at runtime via systemd `LoadCredential` and referenced
+from the CDK configuration document as a `file:` secret. It is never written to
+the Nix store, a persistent `.env` file, or the service process environment.
+
+CDK v0.18 stores its authoritative configuration in the mint database. The
+module imports the rendered configuration document automatically on service
+start (`config init` on first start, `config apply` when the document
+changes), so NixOS configuration changes are applied on deploy as usual.
+Upgrading an existing mint from CDK v0.17.x works the same way: the module
+detects the existing database and initializes it with `--existing-mint`.
+Because CDK runs irreversible database migrations on first open, back up the
+mint data directory before deploying the upgrade.
 
 The LND backend uses the admin macaroon and therefore grants the mint full control
 over the LND node and its on-chain wallet. Treat the mint process as part of the

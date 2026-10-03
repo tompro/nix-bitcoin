@@ -306,11 +306,11 @@ def _():
         )
     elif backend == "lnd":
         machine.wait_until_succeeds(
-            log_has_string("cdk-mintd", "Ln backend: Lnd")
+            log_has_string("cdk-mintd", "Payment backend: Lnd")
         )
     elif backend == "cln":
         machine.wait_until_succeeds(
-            log_has_string("cdk-mintd", "Ln backend: Cln")
+            log_has_string("cdk-mintd", "Payment backend: Cln")
         )
 
     succeed("systemctl start cdk-mintd-backup")
