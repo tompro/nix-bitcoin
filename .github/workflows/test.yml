@@ -1,6 +1,11 @@
 name: nix-bitcoin tests
 
-on: [push, pull_request]
+# `pull_request` already covers pushes to branches with an open PR, so
+# restrict `push` to master to avoid duplicate builds.
+on:
+  push:
+    branches: [master]
+  pull_request:
 
 env:
   CACHIX_SIGNING_KEY: ${{ secrets.CACHIX_SIGNING_KEY }}
