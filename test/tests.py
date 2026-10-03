@@ -318,6 +318,14 @@ def _():
     backup_location = test_data["cdk-mintd-backup-location"]
     succeed(f"ls {backup_location}/cdk-mintd-*.sqlite")
 
+    # Restarting must reuse the stored database configuration without
+    # re-running config init/apply (marker file matches the config store path)
+    succeed("systemctl restart cdk-mintd")
+    assert_running("cdk-mintd")
+    machine.wait_until_succeeds(
+        f"curl -fsS http://{ip('cdk-mintd')}:8085/v1/info | jq -e .pubkey"
+    )
+
 @test("lnurl-mint")
 def _():
     assert_running("lnurl-mint")
