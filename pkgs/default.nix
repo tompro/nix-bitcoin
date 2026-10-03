@@ -14,6 +14,9 @@ in
 let self = {
   btcpayserver = pkgs.callPackage ./btcpayserver { };
   clightning-rest = pkgs.callPackage ./clightning-rest { inherit (self) fetchNodeModules; };
+  # Pinned clightning with security fixes not yet available in nixpkgs.
+  # See ./clightning for details.
+  clightning = pkgs.callPackage ./clightning { };
   clightning-plugins = pkgs.lib.recurseIntoAttrs (import ./clightning-plugins pkgs self.nbPython3Packages);
   clnrest = pkgs.callPackage ./clnrest { inherit (self.pinned) clightning; };
   joinmarket = pkgs.callPackage ./joinmarket { inherit (self) nbPython3PackagesJoinmarket; };
@@ -54,7 +57,7 @@ let self = {
   nixops19_09 = pkgs.callPackage ./nixops { };
 
   pinned = import ./pinned.nix pkgs pkgsUnstable // {
-    inherit (self) btcpayserver;
+    inherit (self) btcpayserver clightning;
   };
 
   modulesPkgs = self // self.pinned;
