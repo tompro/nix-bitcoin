@@ -15,14 +15,13 @@
     };
     cdk = {
       # pinned to a release tag; bump intentionally.
-      # NOTE: v0.18.0 is NOT a drop-in upgrade. Configuration becomes
+      # NOTE: v0.18.x is NOT a drop-in upgrade from v0.17.x. Configuration is
       # database-authoritative (normal startup no longer reads config.toml),
-      # `[ln]` becomes `[payment_backend]`, and irreversible DB migrations run
-      # on open. Upgrading requires stopping the mint, backing up the data dir,
-      # and running `cdk-mintd config migrate/validate/init --existing-mint`.
-      # See https://github.com/cashubtc/cdk/releases/tag/v0.18.0 and
-      # docs/migrations/v0.18.md in the cdk repo.
-      url = "github:cashubtc/cdk/v0.17.6";
+      # `[ln]` is now `[payment_backend]`, and irreversible DB migrations run
+      # on open. The cdk-mintd module handles the one-time `config init`
+      # automatically; for existing mints, back up the data dir before
+      # deploying. See docs/migrations/v0.18.md in the cdk repo.
+      url = "github:cashubtc/cdk/v0.18.1";
       inputs.flake-utils.follows = "flake-utils";
     };
     lnurl-mint = {
