@@ -306,17 +306,25 @@ def _():
         )
     elif backend == "lnd":
         machine.wait_until_succeeds(
-            log_has_string("cdk-mintd", "Ln backend: Lnd")
+            log_has_string("cdk-mintd", "Payment backend: Lnd")
         )
     elif backend == "cln":
         machine.wait_until_succeeds(
-            log_has_string("cdk-mintd", "Ln backend: Cln")
+            log_has_string("cdk-mintd", "Payment backend: Cln")
         )
 
     succeed("systemctl start cdk-mintd-backup")
     assert_matches("systemctl show -p ExecMainStatus --value cdk-mintd-backup", "^0$")
     backup_location = test_data["cdk-mintd-backup-location"]
     succeed(f"ls {backup_location}/cdk-mintd-*.sqlite")
+
+    # Restarting must reuse the stored database configuration without
+    # re-running config init/apply (marker file matches the config store path)
+    succeed("systemctl restart cdk-mintd")
+    assert_running("cdk-mintd")
+    machine.wait_until_succeeds(
+        f"curl -fsS http://{ip('cdk-mintd')}:8085/v1/info | jq -e .pubkey"
+    )
 
 @test("lnurl-mint")
 def _():
