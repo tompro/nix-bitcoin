@@ -334,7 +334,9 @@ let
       type = types.lines;
       default = "";
       description = ''
-        Extra lines appended to the cdk-mintd config file.
+        Extra lines appended to the generated cdk-mintd configuration document.
+        The document is imported into the mint database via `cdk-mintd config
+        init` (first start) or `config apply` (when it changed).
         See the CDK documentation for all available options.
         This configuration is written to the world-readable Nix store and
         must never contain mnemonics, passwords, tokens, or other secrets.
@@ -370,15 +372,22 @@ let
       || cfg.mintInfo.tosUrl != null
       || cfg.mintInfo.pubkey != null);
 
+  # CDK v0.18 configuration is database-authoritative: the daemon no longer
+  # reads a config file at startup. Instead, the generated document below is
+  # imported via `cdk-mintd config init` (first start) or `config apply`
+  # (when the document changed). See `configInitScript`.
   toml = pkgs.formats.toml { };
   generatedConfig = toml.generate "cdk-mintd-config-generated.toml" ({
     info = {
       url = cfg.mintUrl;
       listen_host = cfg.address;
       listen_port = cfg.port;
+      # Secrets are references, never literal values. The file is provided
+      # via systemd LoadCredential.
+      mnemonic = "file:${mnemonicCredential}";
     };
-    ln = {
-      ln_backend = cfg.lightningBackend;
+    payment_backend = {
+      backend = cfg.lightningBackend;
       unit = cfg.ln.unit;
       min_mint = cfg.ln.minMint;
       max_mint = cfg.ln.maxMint;
@@ -434,11 +443,52 @@ let
       cat ${generatedConfig} ${extraConfigFile} > "$out"
     '';
 
+  # Imports the generated configuration document into the mint database.
+  #
+  # - No stored configuration (first start): initialize with `--new-mint` on a
+  #   fresh database or `--existing-mint` when a database from a previous
+  #   deployment exists. `--existing-mint` requires a persisted mint identity
+  #   and keyset history, so it fails closed on an accidentally empty database.
+  # - Stored configuration: apply the document whenever it changed (tracked
+  #   via a marker file containing the config's nix store path).
+  #
+  # Secrets stay out of the database: the document only contains `file:`
+  # references (resolved from systemd credentials at runtime).
+  configInitScript = pkgs.writeShellScript "cdk-mintd-config-init" ''
+    set -euo pipefail
+    export CDK_MINTD_WORK_DIR="${cfg.workDir}"
+
+    marker="${cfg.workDir}/.nix-config-store-path"
+    db="${sqliteDb}"
+
+    if ${cfg.package}/bin/cdk-mintd config show > /dev/null 2>&1; then
+      if [[ -f "$marker" && $(cat "$marker") == "${configFile}" ]]; then
+        # Stored configuration is up to date
+        exit 0
+      fi
+      ${cfg.package}/bin/cdk-mintd config apply --file ${configFile}
+    else
+      # No stored configuration yet. Merely opening the database (e.g. via
+      # `config show`) already creates a schema-only database file, so probe
+      # the keyset table to distinguish an existing mint from a fresh one.
+      keysets=0
+      if [[ -e "$db" ]]; then
+        keysets=$(${pkgs.sqlite}/bin/sqlite3 "$db" "SELECT COUNT(*) FROM keyset;" 2>/dev/null || echo 0)
+      fi
+      if [[ "$keysets" -gt 0 ]]; then
+        ${cfg.package}/bin/cdk-mintd config init --existing-mint --file ${configFile}
+      else
+        ${cfg.package}/bin/cdk-mintd config init --new-mint --file ${configFile}
+      fi
+    fi
+    echo "${configFile}" > "$marker"
+  '';
+
   launcher = pkgs.writeShellScript "cdk-mintd-launcher" ''
     set -eo pipefail
     CDK_MINTD_WORK_DIR="${cfg.workDir}"
     export CDK_MINTD_WORK_DIR
-    exec ${cfg.package}/bin/cdk-mintd --config ${configFile} --seed-file ${mnemonicCredential}
+    exec ${cfg.package}/bin/cdk-mintd
   '';
 in
 {
@@ -510,6 +560,7 @@ in
         User = cfg.user;
         Group = cfg.group;
         WorkingDirectory = cfg.workDir;
+        ExecStartPre = configInitScript;
         ExecStart = launcher;
         Restart = "on-failure";
         RestartSec = "10s";
