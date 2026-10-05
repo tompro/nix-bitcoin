@@ -198,6 +198,31 @@ let
       };
     };
 
+    quoteTtl = {
+      mint = mkOption {
+        type = types.nullOr types.ints.unsigned;
+        default = null;
+        example = 3600;
+        description = ''
+          Time in seconds a mint quote (and its Lightning invoice) stays valid.
+          When unset, the cdk default applies. Consider raising this when
+          funding mint quotes via on-chain swap providers that wait for a
+          confirmation before paying the invoice.
+          When this or `melt` is set, the unset one falls back to its cdk
+          default (mint: 3600, melt: 60) because cdk requires both fields.
+        '';
+      };
+
+      melt = mkOption {
+        type = types.nullOr types.ints.unsigned;
+        default = null;
+        description = ''
+          Time in seconds a melt quote stays valid.
+          When unset, the cdk default applies.
+        '';
+      };
+    };
+
     mintInfo = {
       name = mkOption {
         type = types.str;
@@ -385,6 +410,13 @@ let
       # Secrets are references, never literal values. The file is provided
       # via systemd LoadCredential.
       mnemonic = "file:${mnemonicCredential}";
+    } // optionalAttrs (cfg.quoteTtl.mint != null || cfg.quoteTtl.melt != null) {
+      # cdk requires both fields when quote_ttl is present. Fill unset fields
+      # with the cdk defaults (mint: 1h, melt: 1min).
+      quote_ttl = {
+        mint_ttl = if cfg.quoteTtl.mint != null then cfg.quoteTtl.mint else 3600;
+        melt_ttl = if cfg.quoteTtl.melt != null then cfg.quoteTtl.melt else 60;
+      };
     };
     payment_backend = {
       backend = cfg.lightningBackend;
