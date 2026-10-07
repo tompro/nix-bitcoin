@@ -112,38 +112,13 @@ in
 python3Packages.buildPythonApplication rec {
   pname = "lnurl-mint";
   # keep in sync with the lnurl-mint flake input's release tag (flake.nix)
-  version = "0.12.1";
+  version = "0.12.2";
   pyproject = true;
 
   inherit src;
 
-  patches = [
-    # tests/test_lnurlcash.py: the four pay_delay tests race their
-    # concurrent request against FakeNode's payment sleep - under
-    # build-farm load the main thread loses that window and the note is
-    # already spent/restored before the "pending" assertion (seen as
-    # test_pending_note_rejects_concurrent_operations /
-    # test_pending_note_is_released_if_the_payment_fails failing in CI).
-    # The fake payment is gated on an event the test sets after its
-    # concurrent response, making the pending window deterministic.
-    # Also covers the two /w?p= lookup tests with the identical race.
-    # NOTE: the gate patches router_module.pay_invoice, not
-    # node.pay_invoice - conftest's node fixture wires the fake in as
-    # router_module.pay_invoice (a bound method captured at fixture
-    # setup), so patching the instance attribute never enters the call
-    # path (an earlier revision of this patch did exactly that and the
-    # tests kept flaking).
-    ./pending-note-test-races.patch
-
-    # The same fixed-sleep-window race in the remaining three tests that
-    # probe a mid-flight melt: test_verify.py's genuinely-pending report
-    # (0.3s window), test_poc_f2_pending_info_leak.py's async-gather probe
-    # (0.5s), test_auth_data_hunter_poc.py's f3 (2.0s). Same gate
-    # mechanism (router_module.pay_invoice, same reason as above); f2
-    # additionally polls notes.pending_melts() instead of trusting a
-    # fixed 0.05s sleep for the melt to reach mark_pending.
-    ./pending-window-test-races.patch
-  ];
+  # v0.12.2 includes the deterministic pending-melt test gates upstream
+  # (PRs #72/#73); no local patches for those races are needed.
 
   postPatch = ''
     # into the source tree, so the checkPhase tests covering /docs find them
