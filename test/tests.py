@@ -233,6 +233,14 @@ def _():
     assert_running("btcpayserver")
     machine.wait_until_succeeds(log_has_string("btcpayserver", "Now listening on"))
     wait_for_open_port(ip("btcpayserver"), 23000)
+    # The 2.4.5 SSRF exception must allow exactly the configured LND REST
+    # endpoint (including when netns isolation changes its address).
+    exec_start = succeed("systemctl show btcpayserver -p ExecStart --value")
+    config_file = exec_start.split("--conf=", 1)[1].split()[0]
+    btcpay_config = succeed(f"cat {config_file}")
+    assert [line for line in btcpay_config.splitlines() if line.startswith("ssrfexceptions=")] == [
+        f"ssrfexceptions={ip('lnd')}:8080"
+    ]
     # test lnd custom macaroon
     assert_matches(
         "runuser -u btcpayserver -- curl -fsS --cacert /secrets/lnd-cert "

@@ -218,6 +218,8 @@ in {
     };
 
     systemd.services.btcpayserver = let
+      lndRestAddress = nbLib.address cfg.lnd.restAddress;
+      lndRestEndpoint = "${if hasInfix ":" lndRestAddress then "[${lndRestAddress}]" else lndRestAddress}:${toString cfg.lnd.restPort}";
       nbExplorerUrl = "http://${nbLib.addressWithPort cfg.nbxplorer.address cfg.nbxplorer.port}/";
       nbExplorerCookie = "${cfg.nbxplorer.dataDir}/${bitcoind.makeNetworkName "Main" "RegTest"}/.cookie";
       configFile = builtins.toFile "btcpayserver-config" (''
@@ -234,8 +236,11 @@ in {
         btclightning=type=clightning;server=unix:///${cfg.clightning.dataDir}/${bitcoind.makeNetworkName "bitcoin" "regtest"}/lightning-rpc
       '' + optionalString (cfg.btcpayserver.lightningBackend == "lnd")
         (
+          # BTCPay >= 2.4.5 blocks private outbound destinations. Allow only
+          # the configured LND REST endpoint, not entire private networks.
+          "ssrfexceptions=${lndRestEndpoint}\n" +
           "btclightning=type=lnd-rest;" +
-          "server=https://${nbLib.address cfg.lnd.restAddress}:${toString cfg.lnd.restPort}/;" +
+          "server=https://${lndRestEndpoint}/;" +
           "macaroonfilepath=/run/lnd/btcpayserver.macaroon;" +
           "certfilepath=${config.services.lnd.certPath}" +
           "\n"

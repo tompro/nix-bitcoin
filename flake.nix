@@ -21,7 +21,7 @@
       # on open. The cdk-mintd module handles the one-time `config init`
       # automatically; for existing mints, back up the data dir before
       # deploying. See docs/migrations/v0.18.md in the cdk repo.
-      url = "github:cashubtc/cdk/v0.18.1";
+      url = "github:cashubtc/cdk/v0.18.2";
       inputs.flake-utils.follows = "flake-utils";
     };
     lnurl-mint = {
