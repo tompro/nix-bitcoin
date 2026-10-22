@@ -15,7 +15,7 @@
 , python-bitcointx
 , argon2-cffi
 , autobahn
-, bencoderpyx
+, fastbencode
 , klein
 , mnemonic
 , pyjwt
@@ -29,8 +29,7 @@ buildPythonPackage rec {
   inherit version src;
   format = "pyproject";
 
-  # Since v0.9.11, Python older than v3.8 is not supported.
-  disabled = pythonOlder "3.8";
+  disabled = pythonOlder "3.9" || pythonAtLeast "3.14";
 
   nativeBuildInputs = [
     setuptools
@@ -50,7 +49,7 @@ buildPythonPackage rec {
     # jmclient
     argon2-cffi
     autobahn
-    bencoderpyx
+    fastbencode
     klein
     mnemonic
     pyjwt
@@ -74,9 +73,9 @@ buildPythonPackage rec {
 
   postPatch = ''
     substituteInPlace pyproject.toml \
-      --replace-fail 'twisted==23.10.0' 'twisted==25.5.0' \
+      --replace-fail 'twisted==24.7.0' 'twisted==25.5.0' \
       --replace-fail 'service-identity==21.1.0' 'service-identity==24.2.0' \
-      --replace-fail 'cryptography==41.0.6' 'cryptography==48.0.0' \
+      --replace-fail 'cryptography==42.0.4' 'cryptography==48.0.0' \
       --replace-fail 'txtorcon==23.11.0' 'txtorcon==24.8.0' \
 
     # Modify pyproject.toml to include only specific modules. Do not include 'jmqtui'.

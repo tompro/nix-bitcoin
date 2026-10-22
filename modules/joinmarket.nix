@@ -224,24 +224,10 @@ in {
         onion_serving_host = cfg.messagingAddress;
         onion_serving_port = cfg.messagingPort;
         hidden_service_dir = "";
-        directory_nodes = "g3hv4uynnmynqqq2mchf3fcm3yd46kfzmcdogejuckgwknwyq5ya6iad.onion:5222,3kxw6lf5vf6y26emzwgibzhrzhmhqiw6ekrek3nqfjjmhwznb2moonad.onion:5222,bqlpq6ak24mwvuixixitift4yu42nxchlilrcqwk2ugn45tdclg42qid.onion:5222";
+        directory_nodes = "satoshi2vcg5e2ept7tjkzlkpomkobqmgtsjzegg6wipnoajadissead.onion:5222,jmarketxf5wc4aldf3slm5u6726zsky52bqnfv6qyxe5hnafgly6yuyd.onion:5222,coinjointovy3eq5fjygdwpkbcdx63d7vd4g32mw7y553uj3kjjzkiqd.onion:5222,nakamotourflxwjnjpnrk7yc2nhkf6r62ed4gdfxmmn5f4saw5q5qoyd.onion:5222,odpwaf67rs5226uabcamvypg3y4bngzmfk7255flcdodesqhsvkptaid.onion:5222";
       };
-      # irc.darkscience.net
-      "MESSAGING:server1" = socks5Settings // {
-        host = "darkirc6tqgpnwd3blln3yfv5ckl47eg7llfxkmtovrv7c7iwohhb6ad.onion";
-        channel = "joinmarket-pit";
-        port = 6697;
-        usessl = true;
-      };
-      # ilita
-      "MESSAGING:server2" = socks5Settings // {
-        host = "ilitafrzzgxymv6umx2ux7kbz3imyeko6cnqkvy4nisjjj4qpqkrptid.onion";
-        channel = "joinmarket-pit";
-        port = 6667;
-        usessl = false;
-      };
-      # irc.hackint.org
-      "MESSAGING:server3" = socks5Settings // {
+      # irc.hackint.org (the only IRC network in upstream 0.9.12 defaults)
+      "MESSAGING:hackint" = socks5Settings // {
         host = "ncwkrwxpq2ikcngxq3dy2xctuheniggtqeibvgofixpzvrwpa77tozqd.onion";
         channel = "joinmarket-pit";
         port = 6667;
@@ -253,22 +239,25 @@ in {
   (mkIf cfg.enable {
     assertions = [
       {
-        assertion = lib.versionOlder bitcoind.package.version "30";
+        assertion = lib.versionAtLeast bitcoind.package.version "29" && lib.versionOlder bitcoind.package.version "30";
         message = ''
-          Joinmarket is not compatible with bitcoind >= 30.
-          (https://github.com/JoinMarket-Org/joinmarket-clientserver/pull/1775)
-
-          To fix this, add the following to your config:
-          services.bitcoind.package = config.nix-bitcoin.pkgs.bitcoind_29;
+          The nix-bitcoin JoinMarket integration currently requires Bitcoin Core 29.
+          JoinMarket 0.9.12 supports descriptor wallets, but migrating this module's
+          existing legacy RPC wallets and regtest integration is separate work.
+          Set services.bitcoind.package = config.nix-bitcoin.pkgs.bitcoind_29;
         '';
       }
+    ];
+
+    warnings = [
+      "JoinMarket clientserver is archived upstream and no longer maintained. Review upstream's 0.9.12 security and migration guidance before continued use."
     ];
 
     services.bitcoind = {
       enable = true;
       disablewallet = false;
-      # TODO-EXTERNAL: remove when joinmarket supports descriptor wallets
-      # (https://github.com/JoinMarket-Org/joinmarket-clientserver/issues/1571).
+      # Keep legacy RPC wallets until descriptor-wallet migration and the
+      # upstream regtest helper's watch-only wallet handling are addressed.
       extraConfig = ''
         deprecatedrpc=create_bdb
       '';

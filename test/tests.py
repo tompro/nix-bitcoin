@@ -1,4 +1,5 @@
 from collections import OrderedDict
+import hashlib
 import json
 import os
 import re
@@ -175,6 +176,25 @@ def _():
     assert_str_matches(cert_alt_names, '20.0.0.1')
     assert_str_matches(cert_alt_names, 'example.com')
 
+@test("lnd-wallet-init")
+def _():
+    data_dir = test_data["lnd-data-dir"]
+    network_dir = test_data["lnd-network-dir"]
+    seed = f"{data_dir}/lnd-seed-mnemonic"
+    # Initialization creates a private 24-word seed and a usable wallet.
+    assert succeed(f"wc -w < {seed}").strip() == "24"
+    assert succeed(f"stat -c %a {seed}").strip() == "400"
+    succeed(f"test -s {network_dir}/wallet.db")
+    seed_hash = succeed(f"sha256sum {seed}")
+    identity = succeed("runuser -u operator -- lncli getinfo | jq -r .identity_pubkey").strip()
+    assert len(identity) == 66
+    # A normal restart must unlock the same wallet, not regenerate it.
+    succeed("systemctl restart lnd")
+    machine.wait_until_succeeds("runuser -u operator -- lncli getinfo")
+    assert succeed(f"sha256sum {seed}") == seed_hash
+    assert succeed("runuser -u operator -- lncli getinfo | jq -r .identity_pubkey").strip() == identity
+    assert_no_failure("lnd")
+
 @test("lndconnect-onion-lnd")
 def _():
     assert_running("lnd")
@@ -275,6 +295,7 @@ def _():
     machine.wait_until_succeeds(
         log_has_string("rtl", "Server is up and running")
     )
+    succeed(f"{test_data['rtl-api-test']} http://{ip('rtl')}:3000/rtl")
 
 @test("clightning-rest")
 def _():
@@ -369,6 +390,12 @@ def _():
     machine.wait_until_succeeds(
         log_has_string("joinmarket", "JMDaemonServerProtocolFactory starting on 27183")
     )
+    # Keep testing the legacy wallet integration until descriptor migration
+    # and upstream regtest's watch-only wallet handling are addressed.
+    wallet_info = json.loads(succeed("runuser -u operator -- bitcoin-cli -rpcwallet=jm_wallet getwalletinfo"))
+    assert wallet_info["descriptors"] is False
+    # Regtest deliberately enables keys for test funding; real networks do not.
+    assert wallet_info["private_keys_enabled"] is ("regtest" in enabled_tests)
 
 @test("joinmarket-yieldgenerator")
 def _():
@@ -520,6 +547,29 @@ def _():
     if enabled("fulcrum"):
         machine.wait_until_succeeds(log_has_string("fulcrum", "listening for connections"))
         assert_full_match(get_block_height(ip('fulcrum'), 50002), f"{num_blocks}\n")
+        # Exercise 2.1.4's history lookup path with a funded script, both cold
+        # and cached, rather than just checking that the server is listening.
+        block = json.loads(succeed(
+            "runuser -u operator -- bitcoin-cli getblock "
+            "$(runuser -u operator -- bitcoin-cli getblockhash 1) 2"
+        ))
+        coinbase = block["tx"][0]
+        script = bytes.fromhex(coinbase["vout"][0]["scriptPubKey"]["hex"])
+        script_hash = hashlib.sha256(script).digest()[::-1].hex()
+
+        def fulcrum_rpc(method):
+            request = json.dumps({"id": 1, "method": method, "params": [script_hash]})
+            return json.loads(succeed(
+                f"echo '{request}' | nc {ip('fulcrum')} 50002 | head -1"
+            ))["result"]
+
+        history = fulcrum_rpc("blockchain.scripthash.get_history")
+        assert any(entry["tx_hash"] == coinbase["txid"] and entry["height"] == 1 for entry in history)
+        assert fulcrum_rpc("blockchain.scripthash.get_history") == history
+        expected_status = hashlib.sha256("".join(
+            f"{entry['tx_hash']}:{entry['height']}:" for entry in history
+        ).encode()).hexdigest()
+        assert fulcrum_rpc("blockchain.scripthash.subscribe") == expected_status
 
     if enabled("clightning"):
         machine.wait_until_succeeds(

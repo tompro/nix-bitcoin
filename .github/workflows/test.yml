@@ -41,6 +41,8 @@ jobs:
           - netns
           - netnsRegtest
           - joinmarket-bitcoind-29
+          - lnd-wallet-init
+          - fulcrum
           - cdk-mintd
           - cdk-mintd-lnd
           - cdk-mintd-cln
@@ -62,6 +64,7 @@ jobs:
       - uses: cachix/install-nix-action@v31
       - run: nix flake check --all-systems
       - run: nix eval --impure --json --file test/btcpayserver-config.nix
+      - run: nix eval --impure --json --file test/joinmarket-ob-watcher-config.nix
       # FIXME: Re-enable when the nixos-search input is usable again.
       # This is also disabled in ./test/run-tests.sh.
       # - run: ./test/nixos-search/ci-test.sh

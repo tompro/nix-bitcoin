@@ -5,12 +5,12 @@ let
   # After updating this pkg, also update the following items in ../../modules/joinmarket.nix:
   # - The `MESSAGING:*` sections in the config value of option `settings`.
   #   Copy the values from `jmclient/configure.py`.
-  version = "0.9.11";
+  version = "0.9.12";
   src = fetchFromGitHub {
     owner = "joinmarket-org";
     repo = "joinmarket-clientserver";
     rev = "v${version}";
-    hash = "sha256-sYHhhp9BZz8udJuVAfwdt474OQPiye2ae5DOn5v5yEQ=";
+    hash = "sha256-T0+WXFtXCzBCNRF8DdTQcZQajoZuSuUJA1vUJBfDp6E=";
   };
 
   runtimePackages = with nbPython3PackagesJoinmarket; [

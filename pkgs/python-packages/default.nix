@@ -27,9 +27,9 @@ rec {
     packageOverrides = pyPkgsOverrides;
   }).pkgs;
 
-  # joinmarket (0.9.11) does not support Python 3.13: dependency `future`
-  # fails to evaluate for python3.13. Pin the joinmarket package set to
-  # Python 3.12 until joinmarket is updated.
+  # Keep JoinMarket's legacy autobahn dependency on Python 3.12: its
+  # dependency `future` fails to evaluate for Python 3.13, even though
+  # JoinMarket itself now supports Python 3.13.
   nbPython3PackagesJoinmarket =
     (nbPkgs.pinned.pkgs.python312.override {
       packageOverrides = self: super:

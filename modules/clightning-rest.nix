@@ -67,6 +67,9 @@ in {
   inherit options;
 
   config = mkIf cfg.enable {
+    warnings = [
+      "c-lightning-REST is archived and no longer receives security fixes. Migrate clients to services.clightning.plugins.clnrest (rune authentication and different API endpoints)."
+    ];
     services.clightning.enable = true;
 
     systemd.tmpfiles.rules = [
