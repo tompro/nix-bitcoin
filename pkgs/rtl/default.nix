@@ -3,17 +3,19 @@
 , nodejs_22
 , nodejs-slim_22
 , fetchNodeModules
-, fetchpatch
 , fetchurl
 , makeWrapper
 }:
+# RTL 0.15.15 requires the October 2026 Node.js security fixes.
+assert lib.assertMsg (lib.versionAtLeast nodejs-slim_22.version "22.23.4")
+  "RTL requires Node.js >= 22.23.4. Update nixpkgs or enable nix-bitcoin.useVersionLockedPkgs.";
 let self = stdenvNoCC.mkDerivation {
   pname = "rtl";
-  version = "0.15.8";
+  version = "0.15.15";
 
   src = fetchurl {
     url = "https://github.com/Ride-The-Lightning/RTL/archive/refs/tags/v${self.version}.tar.gz";
-    hash = "sha256-8XdGyORxB2dkZRB/Yl7zh+Quqo4L/Y0VmC6Brbr/hqU=";
+    hash = "sha256-q/13bU6KCdczKoVuETVEu5NPREoZSkiHvCpMtwTaKnU=";
   };
 
   passthru = {
@@ -25,7 +27,7 @@ let self = stdenvNoCC.mkDerivation {
       # TODO-EXTERNAL: Remove `npmFlags` when no longer required
       # See: https://github.com/Ride-The-Lightning/RTL/issues/1182
       npmFlags = "--legacy-peer-deps";
-      hash = "sha256-oMqd6nLzS6iQ9w4z2yzpR2unA5qhOq5YdvfoS8IgYLY=";
+      hash = "sha256-GlN7MFGO2I5khCiU43RL9OfIhdVieLgiYk3KiFtr4pY=";
     };
   };
 
@@ -33,7 +35,16 @@ let self = stdenvNoCC.mkDerivation {
     makeWrapper
   ];
 
-  phases = "unpackPhase patchPhase installPhase";
+  phases = "unpackPhase patchPhase checkPhase installPhase";
+
+  doCheck = true;
+  checkPhase = ''
+    runHook preCheck
+    export HOME=$TMPDIR
+    ln -s ${self.nodeModules}/lib/node_modules node_modules
+    ${self.nodejs}/bin/node --test test/backend/*.test.mjs
+    runHook postCheck
+  '';
 
   # `src` already contains the precompiled frontend and backend.
   # Copy all files required for packaging, like in

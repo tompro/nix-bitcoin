@@ -41,6 +41,8 @@ jobs:
           - netns
           - netnsRegtest
           - joinmarket-bitcoind-29
+          - lnd-wallet-init
+          - fulcrum
           - cdk-mintd
           - cdk-mintd-lnd
           - cdk-mintd-cln

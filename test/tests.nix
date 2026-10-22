@@ -68,6 +68,7 @@ let
       tests.clightning-rest = cfg.clightning-rest.enable;
 
       tests.rtl = cfg.rtl.enable;
+      test.data.rtl-api-test = "${pkgs.python3}/bin/python3 ${./rtl-api.py}";
       services.rtl = {
         nodes = {
           lnd = {
@@ -351,6 +352,19 @@ let
       services.bitcoind.prune = 1000;
     };
 
+    lnd-wallet-init = { config, ... }: {
+      imports = [ scenarios.regtestBase ];
+      services.lnd.enable = true;
+      tests.lnd-wallet-init = true;
+      test.data.lnd-data-dir = config.services.lnd.dataDir;
+      test.data.lnd-network-dir = config.services.lnd.networkDir;
+    };
+
+    fulcrum = {
+      imports = [ scenarios.regtestBase ];
+      services.fulcrum.enable = true;
+    };
+
     trustedcoin = {
       imports = [ scenarios.regtestBase ];
 
@@ -360,8 +374,14 @@ let
       };
     };
 
-    # The full regtest test with bitcoind 29 and joinmarket enabled.
-    # Joinmarket only supports bitcoind 29.
+    # Focused JoinMarket initialization and yield-generator integration test.
+    joinmarket = { config, ... }: {
+      imports = [ scenarios.regtestBase ];
+      services.joinmarket.enable = true;
+      services.bitcoind.package = config.nix-bitcoin.pkgs.bitcoind_29;
+    };
+
+    # Keep full regtest coverage with the Bitcoin Core 29 compatibility package.
     joinmarket-bitcoind-29 = { config, ... }: {
       imports = [ scenarios.regtest ];
       services.joinmarket.enable = true;

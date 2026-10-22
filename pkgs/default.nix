@@ -19,6 +19,7 @@ let self = {
   clightning = pkgs.callPackage ./clightning { };
   clightning-plugins = pkgs.lib.recurseIntoAttrs (import ./clightning-plugins pkgs self.nbPython3Packages);
   clnrest = pkgs.callPackage ./clnrest { inherit (self.pinned) clightning; };
+  fulcrum = pkgsUnstable.callPackage ./fulcrum { };
   joinmarket = pkgs.callPackage ./joinmarket { inherit (self) nbPython3PackagesJoinmarket; };
   lndinit = pkgs.callPackage ./lndinit { };
   liquid-swap = pkgs.python3Packages.callPackage ./liquid-swap { };
@@ -55,7 +56,7 @@ let self = {
   nixops19_09 = pkgs.callPackage ./nixops { };
 
   pinned = import ./pinned.nix pkgs pkgsUnstable // {
-    inherit (self) btcpayserver clightning nbxplorer;
+    inherit (self) btcpayserver clightning fulcrum nbxplorer;
   };
 
   modulesPkgs = self // self.pinned;

@@ -29,7 +29,7 @@ let
       description = ''
         Joinmarket settings.
         See here for possible options:
-        https://github.com/JoinMarket-Org/joinmarket-clientserver/blob/v0.9.11/src/jmclient/configure.py#L98
+        https://github.com/JoinMarket-Org/joinmarket-clientserver/blob/v0.9.12/src/jmclient/configure.py
       '';
     };
     user = mkOption {
