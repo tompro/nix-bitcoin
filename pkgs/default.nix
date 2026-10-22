@@ -22,9 +22,7 @@ let self = {
   joinmarket = pkgs.callPackage ./joinmarket { inherit (self) nbPython3PackagesJoinmarket; };
   lndinit = pkgs.callPackage ./lndinit { };
   liquid-swap = pkgs.python3Packages.callPackage ./liquid-swap { };
-  # Use the native nixpkgs derivation (pinned below) since nixpkgs packages
-  # a current nbxplorer.
-  inherit (self.pinned) nbxplorer;
+  nbxplorer = pkgs.callPackage ./nbxplorer { };
   rtl = pkgs.callPackage ./rtl { inherit (self) fetchNodeModules; };
   inherit (pkgs.callPackage ./mempool { inherit (self) fetchNodeModules; })
     mempool-backend
@@ -57,7 +55,7 @@ let self = {
   nixops19_09 = pkgs.callPackage ./nixops { };
 
   pinned = import ./pinned.nix pkgs pkgsUnstable // {
-    inherit (self) btcpayserver clightning;
+    inherit (self) btcpayserver clightning nbxplorer;
   };
 
   modulesPkgs = self // self.pinned;
