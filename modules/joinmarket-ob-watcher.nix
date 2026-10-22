@@ -74,17 +74,15 @@ in {
       "d '${cfg.dataDir}' 0770 ${cfg.user} ${cfg.group} - -"
     ];
 
-    services.joinmarket-ob-watcher.settings = {
-      BLOCKCHAIN = config.services.joinmarket.settings.BLOCKCHAIN // {
-        rpc_user = bitcoind.rpc.users.joinmarket-ob-watcher.name;
-        rpc_wallet_file = "";
+    # Follow JoinMarket's configured messaging networks, including custom
+    # sections, rather than hard-coding names that upstream can retire.
+    services.joinmarket-ob-watcher.settings =
+      filterAttrs (name: _: hasPrefix "MESSAGING:" name) joinmarket.settings // {
+        BLOCKCHAIN = joinmarket.settings.BLOCKCHAIN // {
+          rpc_user = bitcoind.rpc.users.joinmarket-ob-watcher.name;
+          rpc_wallet_file = "";
+        };
       };
-      inherit (config.services.joinmarket.settings)
-        "MESSAGING:onion"
-        "MESSAGING:server1"
-        "MESSAGING:server2"
-        "MESSAGING:server3";
-    };
 
     systemd.services.joinmarket-ob-watcher = rec {
       wantedBy = [ "multi-user.target" ];
