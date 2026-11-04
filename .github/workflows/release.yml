@@ -1,0 +1,56 @@
+name: Draft release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      actions: read
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      RELEASE_TAG: ${{ github.ref_name }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Validate tag, changelog and CI
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 helper/release-notes.py "$RELEASE_TAG" > "$RUNNER_TEMP/release-notes.md"
+          commit=$(git rev-parse --verify "$RELEASE_TAG^{commit}")
+          git merge-base --is-ancestor "$commit" origin/master
+          passed=$(gh api --method GET "repos/$GH_REPO/actions/workflows/test.yml/runs" \
+            -f branch=master -f event=push -f head_sha="$commit" -f status=success \
+            --jq '.workflow_runs | length')
+          if [[ $passed -eq 0 ]]; then
+            echo "No successful master CI run for $commit. Wait for CI, then rerun this workflow." >&2
+            exit 1
+          fi
+
+      - name: Create draft with reviewed and generated release notes
+        shell: bash
+        run: |
+          set -euo pipefail
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            echo "Release $RELEASE_TAG already exists; leaving it unchanged."
+            exit 0
+          fi
+          gh release create "$RELEASE_TAG" --verify-tag --draft \
+            --title "nix-bitcoin $RELEASE_TAG" \
+            --notes-file "$RUNNER_TEMP/release-notes.md" --generate-notes

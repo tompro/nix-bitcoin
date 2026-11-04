@@ -12,21 +12,21 @@
 </p>
 <br/>
 <p align="center">
-    <a href="https://github.com/fort-nix/nix-bitcoin/actions" target="_blank">
-        <img src="https://github.com/fort-nix/nix-bitcoin/actions/workflows/test.yml/badge.svg?branch=master"
+    <a href="https://github.com/tompro/nix-bitcoin/actions" target="_blank">
+        <img src="https://github.com/tompro/nix-bitcoin/actions/workflows/test.yml/badge.svg?branch=master"
              alt="Github Actions status">
     </a>
-    <a href="https://github.com/fort-nix/nix-bitcoin/releases/latest" target="_blank">
-        <img src="https://img.shields.io/github/v/release/fort-nix/nix-bitcoin" alt="GitHub tag (latest SemVer)">
+    <a href="https://github.com/tompro/nix-bitcoin/releases/latest" target="_blank">
+        <img src="https://img.shields.io/github/v/release/tompro/nix-bitcoin" alt="GitHub tag (latest SemVer)">
     </a>
-    <a href="https://github.com/fort-nix/nix-bitcoin/commits/master" target="_blank">
-        <img src="https://img.shields.io/github/commit-activity/y/fort-nix/nix-bitcoin" alt="GitHub commit activity">
+    <a href="https://github.com/tompro/nix-bitcoin/commits/master" target="_blank">
+        <img src="https://img.shields.io/github/commit-activity/y/tompro/nix-bitcoin" alt="GitHub commit activity">
     </a>
-    <a href="https://github.com/fort-nix/nix-bitcoin/graphs/contributors" target="_blank">
-        <img src="https://img.shields.io/github/contributors-anon/fort-nix/nix-bitcoin" alt="GitHub contributors">
+    <a href="https://github.com/tompro/nix-bitcoin/graphs/contributors" target="_blank">
+        <img src="https://img.shields.io/github/contributors-anon/tompro/nix-bitcoin" alt="GitHub contributors">
     </a>
-    <a href="https://github.com/fort-nix/nix-bitcoin/releases" target="_blank">
-        <img src="https://img.shields.io/github/downloads/fort-nix/nix-bitcoin/total" alt="GitHub downloads">
+    <a href="https://github.com/tompro/nix-bitcoin/releases" target="_blank">
+        <img src="https://img.shields.io/github/downloads/tompro/nix-bitcoin/total" alt="GitHub downloads">
     </a>
 </p>
 <br/>
@@ -65,6 +65,7 @@ top left corner of the documents.
 * [Hardware requirements](docs/hardware.md)
 * [Installation](docs/install.md)
 * [Configuration and maintenance](docs/configuration.md)
+* [Changelog](CHANGELOG.md) and [fork release process](docs/releases.md)
 * [Using services](docs/services.md)
 * [FAQ](docs/faq.md)
 
@@ -98,7 +99,7 @@ NixOS modules ([src](modules/modules.nix))
   * [fulcrum](https://github.com/cculianu/Fulcrum): Electrum server (see [the module](modules/fulcrum.nix) for a comparison with electrs)
   * [btcpayserver](https://github.com/btcpayserver/btcpayserver)
   * [CDK](https://github.com/cashubtc/cdk): Cashu mint with LND, CLN, and fake wallet backends
-  * [lnurl-mint](https://github.com/dni/lnurl-mint): lnurlcash (LUD-25) bearer-note mint with LND and CLN backends
+  * [lnurl-mint](https://github.com/lnurlcash/lnurl-mint): lnurlcash (LUD-25) bearer-note mint with LND and CLN backends
   * [liquid](https://github.com/elementsproject/elements): federated sidechain
   * [JoinMarket](https://github.com/joinmarket-org/joinmarket-clientserver)
     * [JoinMarket Orderbook Watcher](https://github.com/JoinMarket-Org/joinmarket-clientserver/blob/master/docs/orderbook.md)

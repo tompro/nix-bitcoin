@@ -657,7 +657,7 @@ Run `nodeinfo` to see the local address (and onion address, if enabled) of the m
 
 # lnurl-mint (lnurlcash bearer notes)
 
-Enable the [lnurl-mint](https://github.com/dni/lnurl-mint) lnurlcash
+Enable the [lnurl-mint](https://github.com/lnurlcash/lnurl-mint) lnurlcash
 ([LUD-25](https://github.com/lnurl/luds)) mint - Lightning bearer notes on
 plain LUD-03/LUD-06, minted by paying an invoice, circulating offline, and
 rotated/split/merged/melted via the withdraw callback.
@@ -672,6 +672,30 @@ services.lnurl-mint = {
 
 Supported Lightning backends are `lnd` (REST + macaroon) and `cln` (clnrest +
 rune; requires `services.clightning.plugins.clnrest.enable = true`).
+
+Configure mint and Lightning Address registration fees with:
+
+```nix
+services.lnurl-mint.fees = {
+  baseMsat = 1000;     # BASE_FEE_MSAT, withheld from each minted note
+  percentPpm = 2500;   # FEE_PPM, 0.25% on top of the base fee
+  addressMsat = 50000; # ADDRESS_FEE_MSAT, 50 sats per username registration
+};
+```
+
+The defaults remain 1000 msat base fee, zero proportional fee, and free
+username registration. The module handles upstream's configuration schema:
+existing `fees.percentPpm` configurations need no rename. For raw
+`extraSettings`, use `FEE_PPM`; legacy `FEE_PERCENT_PPM` is translated with a
+deprecation warning and still overrides the dedicated option. If both raw
+names are set, `FEE_PPM` wins. `extraSettings.ADDRESS_FEE_MSAT` likewise
+overrides `fees.addressMsat`.
+
+The 0.13 upgrade also changes the LUD-26 wallet protocol, independently of
+Nix configuration: registration/update/delete use `/.well-known/lnurlp/`
+and the new share/signature format. Wallet clients must support it. Existing
+legacy registrations retain their old derivation until explicitly migrated;
+see the pinned upstream README before migrating wallets or registrations.
 
 Credentials never enter the Nix store or the service environment: they are
 loaded at runtime via systemd `LoadCredential` and exported by the service

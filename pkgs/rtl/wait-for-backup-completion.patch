@@ -1,0 +1,47 @@
+# The upstream concurrency test assumes six asynchronous 4 MiB backups
+# finish within one second. Wait for their real completion callbacks so
+# loaded builders still check every write, error, rename and final contents.
+# Test-only: remove once upstream waits for completion rather than sleeping.
+--- a/test/backend/lnd-getinfo-backup.test.mjs
++++ b/test/backend/lnd-getinfo-backup.test.mjs
+@@ -150,17 +150,38 @@
+   await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+   const root = mkdtempSync(join(tmpdir(), 'rtl-getinfo-'));
+   const node = makeNode(root, 1, `http://127.0.0.1:${server.address().port}`);
++  // A response being sent does not mean its asynchronous file write and
++  // rename have completed. Observe the real completion callback instead
++  // of assuming all six 4 MiB backups finish within a fixed one-second sleep.
++  const backupResult = Common.logChannelBackupResult;
++  let completed = 0;
++  let resolveBackups;
++  const backupsDone = new Promise((resolve) => { resolveBackups = resolve; });
++  Common.logChannelBackupResult = (...args) => {
++    const result = backupResult(...args);
++    if (args[0] === node && ++completed === REFRESHES) { resolveBackups(); }
++    return result;
++  };
++  let timeout;
+   const errors = [];
+   const log = Logger.log;
+   Logger.log = (msg) => { if (msg.level === 'ERROR') { errors.push(msg.msg + ': ' + (msg.error?.message || '')); } return log(msg); };
+   try {
+     for (let i = 0; i < REFRESHES; i++) { Common.getAllNodeAllChannelBackup(node); }
+-    for (let i = 0; i < 300 && held.length < REFRESHES; i++) { await new Promise((resolve) => setTimeout(resolve, 10)); }
+-    await new Promise((resolve) => setTimeout(resolve, 1000));
++    await Promise.race([
++      backupsDone,
++      new Promise((_, reject) => {
++        timeout = setTimeout(() => reject(new Error('Timed out waiting for backup completion')), 30000);
++      })
++    ]);
++    assert.equal(held.length, REFRESHES);
++    assert.equal(completed, REFRESHES);
+     assert.deepEqual(errors, []);
+     assert.deepEqual(readdirSync(node.settings.channelBackupPath), ['channel-all.bak']);
+     assert.deepEqual(JSON.parse(readFileSync(backupFile(node), 'utf-8')), big);
+   } finally {
++    clearTimeout(timeout);
++    Common.logChannelBackupResult = backupResult;
+     Logger.log = log;
+     await new Promise((resolve) => server.close(resolve));
+   }

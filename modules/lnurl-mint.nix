@@ -97,9 +97,19 @@ let
         type = types.ints.unsigned;
         default = 0;
         description = ''
-          FEE_PERCENT_PPM: parts-per-million cut of every mint, on top of
-          baseMsat. Must stay well below 1000000 (100%) - the mint rejects
-          higher values at startup.
+          FEE_PPM: parts-per-million cut of every mint, on top of baseMsat.
+          Upstream accepts at most 100000 (10%). The Nix option name stays
+          unchanged for compatibility.
+        '';
+      };
+
+      addressMsat = mkOption {
+        type = types.ints.unsigned;
+        default = 0;
+        description = ''
+          ADDRESS_FEE_MSAT (LUD-26): fee for registering a Lightning Address
+          username. Registration stays pending until its invoice is paid.
+          The default, 0, keeps registration free.
         '';
       };
     };
@@ -224,8 +234,10 @@ let
       };
       description = ''
         Extra environment variables for the mint (see lnurl-mint's
-        .env.example for the full list), rendered 1:1 as KEY=value. Wins
-        over the dedicated options on conflict. Written to the
+        .env.example for the full list), rendered as KEY=value. Wins
+        over the dedicated options on conflict. The legacy FEE_PERCENT_PPM
+        name is translated to FEE_PPM; if both are supplied, FEE_PPM wins.
+        Written to the
         world-readable Nix store - never put secrets (macaroons, runes)
         here; the module wires those via systemd credentials instead.
       '';
@@ -245,6 +257,14 @@ let
   credentialDir = "/run/credentials/lnurl-mint.service";
 
   toEnvValue = v: if builtins.isBool v then (if v then "true" else "false") else toString v;
+
+  # Normalize the old name before merging overrides. Simply changing the
+  # default environment key would otherwise mask a consumer's legacy fee
+  # override: upstream prefers FEE_PPM whenever both names are present.
+  extraSettings = removeAttrs cfg.extraSettings [ "FEE_PERCENT_PPM" ]
+    // optionalAttrs (cfg.extraSettings ? FEE_PERCENT_PPM && !(cfg.extraSettings ? FEE_PPM)) {
+      FEE_PPM = cfg.extraSettings.FEE_PERCENT_PPM;
+    };
 
   # lnurl-mint takes its node credentials as env vars; nix-bitcoin handles
   # secrets as files (LoadCredential) - the launcher bridges the two. The
@@ -270,6 +290,11 @@ in
   inherit options;
 
   config = mkIf cfg.enable {
+    warnings = optional (cfg.extraSettings ? FEE_PERCENT_PPM) ''
+      services.lnurl-mint.extraSettings.FEE_PERCENT_PPM is deprecated;
+      use extraSettings.FEE_PPM or fees.percentPpm instead.
+    '';
+
     assertions = [
       {
         assertion = isLnd -> lnd.enable;
@@ -337,7 +362,8 @@ in
         BASE_URL = cfg.mintUrl;
         VERIFY_ENABLED = toEnvValue cfg.verifyEnabled;
         BASE_FEE_MSAT = toString cfg.fees.baseMsat;
-        FEE_PERCENT_PPM = toString cfg.fees.percentPpm;
+        FEE_PPM = toString cfg.fees.percentPpm;
+        ADDRESS_FEE_MSAT = toString cfg.fees.addressMsat;
         FUNDINGSOURCE_BACKEND = cfg.lightningBackend;
         FUNDINGSOURCE_URL = if isLnd then cfg.lnd.address else cfg.cln.address;
         # both REST APIs are commonly self-signed; the cert travels as a
@@ -345,7 +371,7 @@ in
         # permissions
         FUNDINGSOURCE_CERT_PATH = "${credentialDir}/node-cert";
       }
-      // mapAttrs (_: toEnvValue) cfg.extraSettings;
+      // mapAttrs (_: toEnvValue) extraSettings;
 
       serviceConfig = nbLib.defaultHardening // {
         Type = "simple";

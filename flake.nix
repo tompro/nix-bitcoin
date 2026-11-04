@@ -21,13 +21,14 @@
       # on open. The cdk-mintd module handles the one-time `config init`
       # automatically; for existing mints, back up the data dir before
       # deploying. See docs/migrations/v0.18.md in the cdk repo.
-      url = "github:cashubtc/cdk/v0.18.2";
+      url = "github:cashubtc/cdk/v0.18.3";
       inputs.flake-utils.follows = "flake-utils";
     };
     lnurl-mint = {
-      # pinned to a release tag; bump intentionally (run the lnurl-mint
-      # scenario when doing so)
-      url = "github:lnurlcash/lnurl-mint/v0.12.2";
+      # Post-v0.13.1 main includes the cached-Python/CA-trust fixes (PR #79).
+      # Pin the commit until a release includes them; run the lnurl-mint
+      # scenarios when updating.
+      url = "github:lnurlcash/lnurl-mint/a1d8ea4b18d5bcc548e4b7285e8803d95f1fa413";
       flake = false;
     };
   };

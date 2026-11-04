@@ -11,12 +11,19 @@ assert lib.assertMsg (lib.versionAtLeast nodejs-slim_22.version "22.23.4")
   "RTL requires Node.js >= 22.23.4. Update nixpkgs or enable nix-bitcoin.useVersionLockedPkgs.";
 let self = stdenvNoCC.mkDerivation {
   pname = "rtl";
-  version = "0.15.15";
+  version = "0.15.16";
 
   src = fetchurl {
     url = "https://github.com/Ride-The-Lightning/RTL/archive/refs/tags/v${self.version}.tar.gz";
-    hash = "sha256-q/13bU6KCdczKoVuETVEu5NPREoZSkiHvCpMtwTaKnU=";
+    hash = "sha256-aVQzez5DE0UjZ1B2vBvclF8XqntuupXOUPawTFRzW1o=";
   };
+
+  patches = [
+    # A post-release advisory affects the shipped follow-redirects lock.
+    ./follow-redirects-security.patch
+    # Synchronize the backup test with completed writes, not a fixed sleep.
+    ./wait-for-backup-completion.patch
+  ];
 
   passthru = {
     nodejs = nodejs_22;
@@ -24,10 +31,13 @@ let self = stdenvNoCC.mkDerivation {
 
     nodeModules = fetchNodeModules {
       inherit (self) src nodejs;
+      # Only the lock patch affects dependencies; keep test patches out of
+      # the fixed-output fetcher so its derivation and hash stay unchanged.
+      patches = [ ./follow-redirects-security.patch ];
       # TODO-EXTERNAL: Remove `npmFlags` when no longer required
       # See: https://github.com/Ride-The-Lightning/RTL/issues/1182
       npmFlags = "--legacy-peer-deps";
-      hash = "sha256-GlN7MFGO2I5khCiU43RL9OfIhdVieLgiYk3KiFtr4pY=";
+      hash = "sha256-O2pXS07q0LQG6gHFkVt5p6fil7OR6AU+ZYCsQLyHsKI=";
     };
   };
 
@@ -43,6 +53,11 @@ let self = stdenvNoCC.mkDerivation {
     export HOME=$TMPDIR
     ln -s ${self.nodeModules}/lib/node_modules node_modules
     ${self.nodejs}/bin/node --test test/backend/*.test.mjs
+    # Deterministically exercise the CI race: completion takes longer than
+    # the old one-second sleep, but all original backup assertions remain.
+    ${self.nodejs}/bin/node --import=${../../test/rtl-slow-backup-writes.mjs} \
+      --test --test-name-pattern='overlapping refreshes' \
+      test/backend/lnd-getinfo-backup.test.mjs
     runHook postCheck
   '';
 
