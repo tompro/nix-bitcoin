@@ -153,6 +153,7 @@ let
       test.data.cdk-mintd-backend = cfg.cdk-mintd.lightningBackend;
 
       tests.lnurl-mint = cfg.lnurl-mint.enable;
+      test.data.lnurl-mint-fees = cfg.lnurl-mint.fees;
       test.data.lnurl-mint-backup = cfg.lnurl-mint.backup.enable;
       test.data.lnurl-mint-backup-location = config.services.lnurl-mint.backup.location;
       test.data.cdk-mintd-mint-name = config.services.cdk-mintd.mintInfo.name;
@@ -462,6 +463,10 @@ let
         enable = true;
         mintUrl = "https://mint.example.com";
         lightningBackend = "cln";
+        # Exercise the new upstream names with nonzero values: defaults
+        # would hide a silently ignored environment variable.
+        fees.percentPpm = 2500;
+        fees.addressMsat = 50000;
       };
     };
 

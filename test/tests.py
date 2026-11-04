@@ -364,6 +364,21 @@ def _():
     machine.wait_until_succeeds(
         f"curl -fsS http://{ip('lnurl-mint')}:8111/.well-known/lnurlp/_ | jq -e .withdrawLink"
     )
+    # Verify effective fees, not just service startup. The CLN scenario
+    # uses nonzero PPM/address fees to catch configuration-schema drift.
+    pay_request = json.loads(succeed(
+        f"curl -fsS http://{ip('lnurl-mint')}:8111/.well-known/lnurlp/_"
+    ))
+    fees = test_data["lnurl-mint-fees"]
+    fee_entry = f"Mint fees: {fees['baseMsat']},{fees['percentPpm']}"
+    if fees["addressMsat"]:
+        fee_entry += f",{fees['addressMsat']}"
+    metadata = json.loads(pay_request["metadata"])
+    if any(fees.values()):
+        assert ["text/plain", fee_entry] in metadata, metadata
+    else:
+        assert not any(value.startswith("Mint fees: ") for _, value in metadata), metadata
+
     # the callback reaches the funding source and returns a real invoice -
     # the end-to-end proof the backend wiring works (for cln, that the
     # auto-minted scoped rune was accepted). Since v0.4.0 the comment param
