@@ -111,8 +111,9 @@ let
 in
 python3Packages.buildPythonApplication rec {
   pname = "lnurl-mint";
-  # keep in sync with the lnurl-mint flake input's release tag (flake.nix)
-  version = "0.12.2";
+  # Post-v0.13.1 main, matching the commit pinned in flake.nix. Keep this
+  # PEP 440-compatible because hatch-vcs also uses it for wheel metadata.
+  version = "0.13.1.post0+ga1d8ea4";
   pyproject = true;
 
   inherit src;
@@ -160,6 +161,7 @@ python3Packages.buildPythonApplication rec {
     python-dotenv
     bolt11
     httpx
+    certifi
     pydantic-settings
     qrcode
     bech32
@@ -173,8 +175,10 @@ python3Packages.buildPythonApplication rec {
 
   # nixpkgs ships a fastapi newer than lnurl-mint's <0.116 pin - relax the
   # metadata bound and let the checkPhase's full test suite adjudicate
-  # compatibility (it passes)
-  pythonRelaxDeps = [ "fastapi" ];
+  # compatibility (it passes). Nixpkgs certifi uses the system CA bundle,
+  # not its older bundled roots; check the effective bundle below before
+  # relaxing the PyPI version floor. pip/uv's upstream requirement remains.
+  pythonRelaxDeps = [ "fastapi" "certifi" ];
 
   nativeBuildInputs = [ pkgs.makeWrapper ];
 
@@ -202,6 +206,10 @@ python3Packages.buildPythonApplication rec {
   # sys.path, which only the -m form adds
   checkPhase = ''
     runHook preCheck
+    # Reject the compromised emSign root even when this package is called
+    # with a nixpkgs older than our lock. The upstream check clears CA
+    # environment overrides before inspecting certifi's default bundle.
+    python ${src}/nix/check-certifi.py
     python -m pytest
     runHook postCheck
   '';
@@ -212,7 +220,7 @@ python3Packages.buildPythonApplication rec {
 
   meta = {
     description = "Minimal lnurlcash (LUD-25, Lightning bearer assets) mint - LUD-03/LUD-06 only";
-    homepage = "https://github.com/dni/lnurl-mint";
+    homepage = "https://github.com/lnurlcash/lnurl-mint";
     license = lib.licenses.mit;
     mainProgram = "lnurl-mint";
     platforms = lib.platforms.linux;

@@ -16,6 +16,10 @@ in rec {
     stable = pinned.pkgs;
     unstable = pinned.pkgsUnstable;
     isStable = builtins.partition (pkgName:
+      # electrs 0.12 removes the P2P interface used by our module and needs
+      # Bitcoin Core REST plus an index rebuild. Keep the compatible stable
+      # package until its module and deployment migration are implemented.
+      pkgName == "electrs" ||
       !(unstable ? "${pkgName}") ||
       ((stable ? "${pkgName}")
        && (builtins.compareVersions stable.${pkgName}.version unstable.${pkgName}.version >= 0))
