@@ -26,6 +26,11 @@ releases remain at https://github.com/fort-nix/nix-bitcoin/releases.
 - Keep electrs on the compatible stable package (0.11.0), including in the
   update helper; 0.12 requires separate REST integration and an index rebuild.
 
+### Fixed
+- RTL's overlapping-backup test now waits for all six write/rename completion
+  callbacks instead of sleeping for one second. A slow-write regression keeps
+  this check deterministic on loaded builders without skipping assertions.
+
 ### Upgrade notes
 - Back up databases and wallet/channel state before deployment. Bitcoin Core
   moves from 31.1 to 32.1, a major upgrade; review its RPC and PSBT changes.

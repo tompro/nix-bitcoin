@@ -18,16 +18,22 @@ let self = stdenvNoCC.mkDerivation {
     hash = "sha256-aVQzez5DE0UjZ1B2vBvclF8XqntuupXOUPawTFRzW1o=";
   };
 
-  # A post-release advisory affects the shipped follow-redirects lock.
-  # Apply the same lock patch to the package and its fetched dependencies.
-  patches = [ ./follow-redirects-security.patch ];
+  patches = [
+    # A post-release advisory affects the shipped follow-redirects lock.
+    ./follow-redirects-security.patch
+    # Synchronize the backup test with completed writes, not a fixed sleep.
+    ./wait-for-backup-completion.patch
+  ];
 
   passthru = {
     nodejs = nodejs_22;
     nodejsRuntime = nodejs-slim_22;
 
     nodeModules = fetchNodeModules {
-      inherit (self) src nodejs patches;
+      inherit (self) src nodejs;
+      # Only the lock patch affects dependencies; keep test patches out of
+      # the fixed-output fetcher so its derivation and hash stay unchanged.
+      patches = [ ./follow-redirects-security.patch ];
       # TODO-EXTERNAL: Remove `npmFlags` when no longer required
       # See: https://github.com/Ride-The-Lightning/RTL/issues/1182
       npmFlags = "--legacy-peer-deps";
@@ -47,6 +53,11 @@ let self = stdenvNoCC.mkDerivation {
     export HOME=$TMPDIR
     ln -s ${self.nodeModules}/lib/node_modules node_modules
     ${self.nodejs}/bin/node --test test/backend/*.test.mjs
+    # Deterministically exercise the CI race: completion takes longer than
+    # the old one-second sleep, but all original backup assertions remain.
+    ${self.nodejs}/bin/node --import=${../../test/rtl-slow-backup-writes.mjs} \
+      --test --test-name-pattern='overlapping refreshes' \
+      test/backend/lnd-getinfo-backup.test.mjs
     runHook postCheck
   '';
 
