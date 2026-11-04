@@ -17,7 +17,7 @@
              alt="Github Actions status">
     </a>
     <a href="https://github.com/tompro/nix-bitcoin/releases/latest" target="_blank">
-        <img src="https://img.shields.io/github/v/release/tompro/nix-bitcoin" alt="GitHub tag (latest SemVer)">
+        <img src="https://img.shields.io/github/v/release/tompro/nix-bitcoin?sort=date" alt="Latest GitHub release">
     </a>
     <a href="https://github.com/tompro/nix-bitcoin/commits/master" target="_blank">
         <img src="https://img.shields.io/github/commit-activity/y/tompro/nix-bitcoin" alt="GitHub commit activity">
@@ -65,7 +65,7 @@ top left corner of the documents.
 * [Hardware requirements](docs/hardware.md)
 * [Installation](docs/install.md)
 * [Configuration and maintenance](docs/configuration.md)
-* [Changelog](CHANGELOG.md) and [fork release process](docs/releases.md)
+* [Releases and generated changelogs](https://github.com/tompro/nix-bitcoin/releases) and [release process](docs/releases.md)
 * [Using services](docs/services.md)
 * [FAQ](docs/faq.md)
 
