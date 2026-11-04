@@ -96,6 +96,12 @@ It's easiest to use an existing service as a template:
 - [rtl.nix](../modules/rtl.nix): includes a custom package, defined in [pkgs/rtl](../pkgs/rtl).\
   Most other services use packages that are already included in nixpkgs.
 
+## Publishing a fork release
+
+See [the release process](../docs/releases.md). Prepare and review a versioned
+changelog entry, wait for successful master CI, then push a signed version tag.
+The workflow creates a draft GitHub Release for manual review and publication.
+
 ## Switching to a new NixOS release
 - Run command `update-flake.sh 26.05`
 - Treewide: check if any `TODO-EXTERNAL` comments can be resolved
