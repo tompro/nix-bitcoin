@@ -31,6 +31,14 @@ let
         (mkIfTest "lnd" [ openssl ])
       ]);
 
+      # Offline tests must not leave a bootstrapping Tor SOCKS proxy accepting
+      # requests that cannot complete. CLBOSS can fill its shared worker pool
+      # with these probes, starving stdin and its global rpc_command hook.
+      # DisableNetwork still generates the hidden-service identities tested below.
+      services.tor.settings.DisableNetwork = mkIf config.test.noConnections true;
+      tests.tor-offline = cfg.tor.enable && config.test.noConnections;
+      test.data.tor-socks = cfg.tor.client.socksListenAddress;
+
       tests.bitcoind = cfg.bitcoind.enable;
       services.bitcoind = {
         enable = true;

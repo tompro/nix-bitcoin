@@ -133,6 +133,14 @@ def _():
     assert_matches("runuser -u operator -- elements-cli getnetworkinfo | jq", '"version"')
     succeed("runuser -u operator -- liquidswap-cli --help")
 
+@test("tor-offline")
+def _():
+    assert_running("tor")
+    # An offline Tor must reject SOCKS connections instead of accepting probes
+    # that can exhaust CLBOSS's worker pool and block all CLN RPC requests.
+    socks = test_data["tor-socks"]
+    machine.fail(f"nc -z -w 2 {socks['addr']} {socks['port']}")
+
 @test("clightning")
 def _():
     assert_running("clightning")

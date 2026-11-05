@@ -98,9 +98,9 @@ It's easiest to use an existing service as a template:
 
 ## Publishing a fork release
 
-See [the release process](../docs/releases.md). Prepare and review a versioned
-changelog entry, wait for successful master CI, then push a signed version tag.
-The workflow creates a draft GitHub Release for manual review and publication.
+See [the release process](../docs/releases.md). Successful master CI publishes
+an immediate GitHub Release for the tested commit, with a UTC calendar tag and
+GitHub-generated notes. No manual tag, changelog entry, or draft is required.
 
 ## Switching to a new NixOS release
 - Run command `update-flake.sh 26.05`
