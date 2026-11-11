@@ -26,6 +26,43 @@ systemctl cat bitcoind
 systemctl show bitcoind
 ```
 
+# LND: Linux kernel MPTCP mitigation
+
+The pinned [LND v0.21.8-beta tag](https://github.com/lightningnetwork/lnd/tree/v0.21.8-beta)
+includes the MPTCP listener mitigation introduced in
+[v0.21.6-beta for CVE-2026-98432](https://github.com/lightningnetwork/lnd/releases/tag/v0.21.6-beta).
+This is a Linux kernel TCP vulnerability, not an LND protocol bug. The 0.21.8
+tag is available before a published GitHub release; its
+[release notes](https://github.com/lightningnetwork/lnd/blob/v0.21.8-beta/docs/release-notes/release-notes-0.21.8.md)
+also describe channel recovery, forwarding replay, and sweep correctness fixes.
+Back up wallet/channel state before upgrading.
+
+When `services.lnd.enable = true`, nix-bitcoin also defaults to:
+
+```nix
+boot.kernel.sysctl."net.mptcp.enabled" = 0;
+systemd.services.lnd.environment.GODEBUG = "multipathtcp=0";
+```
+
+The sysctl disables MPTCP for other services in the host network namespace.
+It does **not** cover containers or other network namespaces; disable MPTCP
+there separately. The LND environment setting also applies with
+`nix-bitcoin.netns-isolation` and custom LND packages. Kernels without MPTCP
+support do not have this sysctl and are not exposed through this exploit path.
+
+Deploy with `nixos-rebuild switch` (or your usual deployment tool) and ensure
+LND restarts. To check the live host setting, run `sysctl net.mptcp.enabled`.
+`sudo ss -Mlnp | grep lnd` should print nothing; with netns isolation, use
+`sudo ip netns exec nb-lnd ss -Mlnp | grep lnd` instead.
+
+**These settings are mitigations, not a kernel fix. Install a patched kernel
+and reboot into it.** Updating the nix-bitcoin input alone does not update a
+consumer's kernel. Also check any containers or other network namespaces.
+
+Both settings are overridable defaults. If you customize LND's `GODEBUG`,
+retain `multipathtcp=0` alongside your other comma-separated settings until
+the kernel is patched. Do not re-enable MPTCP on an unpatched kernel.
+
 # clightning database replication
 
 The clightning database can be replicated to a local path

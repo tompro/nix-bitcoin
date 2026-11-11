@@ -178,6 +178,15 @@ def _():
     assert_matches("runuser -u operator -- lncli getinfo | jq", '"version"')
     assert_no_failure("lnd")
 
+    # CVE-2026-98432: the host sysctl and the service-local fallback are both
+    # needed, since the sysctl is per network namespace. Kernels without MPTCP
+    # support have no sysctl and cannot expose the demonstrated exploit path.
+    succeed("test ! -e /proc/sys/net/mptcp/enabled || test $(cat /proc/sys/net/mptcp/enabled) = 0")
+    pid = succeed("systemctl show -p MainPID --value lnd").strip()
+    assert_matches(f"tr '\\0' '\\n' < /proc/{pid}/environ", "(?m)^GODEBUG=multipathtcp=0$")
+    # Inspect LND's actual namespace, not just the host's sockets.
+    assert "lnd" not in succeed(f"nsenter -t {pid} -n ss -Mlnp")
+
     # Test certificate generation
     cert_alt_names = succeed("</secrets/lnd-cert openssl x509 -noout -ext subjectAltName")
     assert_str_matches(cert_alt_names, '10.0.0.1')

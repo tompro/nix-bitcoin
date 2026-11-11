@@ -21,6 +21,8 @@ let self = {
   clnrest = pkgs.callPackage ./clnrest { inherit (self.pinned) clightning; };
   fulcrum = pkgsUnstable.callPackage ./fulcrum { };
   joinmarket = pkgs.callPackage ./joinmarket { inherit (self) nbPython3PackagesJoinmarket; };
+  # Tag-only LND update not yet available in the pinned nixpkgs.
+  lnd = pkgsUnstable.callPackage ./lnd { };
   lndinit = pkgs.callPackage ./lndinit { };
   liquid-swap = pkgs.python3Packages.callPackage ./liquid-swap { };
   nbxplorer = pkgs.callPackage ./nbxplorer { };
@@ -56,7 +58,7 @@ let self = {
   nixops19_09 = pkgs.callPackage ./nixops { };
 
   pinned = import ./pinned.nix pkgs pkgsUnstable // {
-    inherit (self) btcpayserver clightning fulcrum nbxplorer;
+    inherit (self) btcpayserver clightning fulcrum lnd nbxplorer;
   };
 
   modulesPkgs = self // self.pinned;

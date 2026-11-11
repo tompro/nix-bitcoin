@@ -55,6 +55,20 @@ signatures and migration of the legacy updater would be a separate security
 change. GitHub publication and Nix content hashes do not replace independent
 maintainer-signature verification.
 
+## LND 0.21.8 tag update
+
+LND is pinned to the signed `v0.21.8-beta` tag, ahead of a published GitHub
+release. Back up wallet/channel state before deploying and review the
+[upstream notes](https://github.com/lightningnetwork/lnd/blob/v0.21.8-beta/docs/release-notes/release-notes-0.21.8.md).
+In particular, funding publication errors now retain pending channels for
+recovery; permanently unpublishable transactions may require manual cleanup.
+
+With LND enabled, the module also defaults to disabling host MPTCP and sets
+`GODEBUG=multipathtcp=0` for LND, including in isolated network namespaces.
+These mitigate the demonstrated CVE-2026-98432 exploit path but do not fix
+the kernel: update the host kernel and reboot. See
+[deployment and verification instructions](services.md#lnd-linux-kernel-mptcp-mitigation).
+
 ## Upgrade reminders for the initial maintained-fork update
 
 The dependency/configuration changes in PR #20 require operator review even

@@ -217,6 +217,11 @@ in {
 
     environment.systemPackages = [ cfg.package (hiPrio cfg.cli) ];
 
+    # CVE-2026-98432: also mitigate the demonstrated exploit path for other
+    # services in the host network namespace. A patched kernel is still required.
+    # https://github.com/lightningnetwork/lnd/releases/tag/v0.21.6-beta
+    boot.kernel.sysctl."net.mptcp.enabled" = mkDefault 0;
+
     systemd.tmpfiles.rules = [
       "d '${cfg.dataDir}' 0770 ${cfg.user} ${cfg.group} - -"
     ];
@@ -224,6 +229,9 @@ in {
     services.lnd.certificate.extraIPs = mkIf (cfg.rpcAddress != "127.0.0.1") [ "${cfg.rpcAddress}" ];
 
     systemd.services.lnd = {
+      # Also covers custom/older packages and isolated network namespaces,
+      # where the host's MPTCP sysctl does not apply.
+      environment.GODEBUG = mkDefault "multipathtcp=0";
       wantedBy = [ "multi-user.target" ];
       requires = [ "bitcoind.service" ];
       after = [ "bitcoind.service" "nix-bitcoin-secrets.target" ];

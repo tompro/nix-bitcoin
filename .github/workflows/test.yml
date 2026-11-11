@@ -64,6 +64,7 @@ jobs:
       - uses: cachix/install-nix-action@v31
       - run: nix flake check --all-systems
       - run: nix eval --impure --json --file test/btcpayserver-config.nix
+      - run: nix eval --impure --json --file test/lnd-config.nix
       - run: nix eval --impure --json --file test/lnurl-mint-config.nix
       - run: python3 -B test/publish-release.py
       - run: nix shell --inputs-from . nixpkgs#ruff -c ruff check --select E,F,I --line-length 120 helper/publish-release.py test/publish-release.py
