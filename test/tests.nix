@@ -142,16 +142,7 @@ let
       test.data.btcpayserver-lbtc = config.services.btcpayserver.lbtc;
       test.data.btcpayserver-nbxplorer-stats = config.services.btcpayserver.nbxplorerStats;
 
-      tests.joinmarket = cfg.joinmarket.enable;
-      tests.joinmarket-yieldgenerator = cfg.joinmarket.yieldgenerator.enable;
       tests.joinmarket-ob-watcher = cfg.joinmarket-ob-watcher.enable;
-      services.joinmarket.yieldgenerator = {
-        enable = config.services.joinmarket.enable;
-        # Test a smattering of custom parameters
-        ordertype = "absoffer";
-        cjfee_a = 300;
-        cjfee_r = 0.00003;
-      };
 
       tests.nodeinfo = config.nix-bitcoin.nodeinfo.enable;
 
@@ -304,10 +295,6 @@ let
       test.data.netns = config.nix-bitcoin.netns-isolation.netns;
       tests.netns-isolation = true;
       environment.systemPackages = [ pkgs.fping ];
-
-      # Used for testing that `netns-exec` is not executable by users other than
-      # the operator. Like all normal users, this user is a member of group `users`.
-      users.users.unauthorized.isNormalUser = true;
     };
 
     regtestBase = { config, pkgs, ... }: {
@@ -355,6 +342,14 @@ let
       services.btcpayserver.lbtc = mkForce false;
     };
 
+    # Focused coverage for the November .NET and Core Lightning security updates.
+    securityUpdates = {
+      imports = [ scenarios.regtestBase ];
+      services.btcpayserver.enable = true;
+      services.clightning.enable = true;
+      test.features.clightningPlugins = true;
+    };
+
     # Test the special bitcoin RPC setup that lnd uses when bitcoin is pruned
     lndPruned = {
       services.lnd.enable = true;
@@ -381,20 +376,6 @@ let
         enable = true;
         plugins.trustedcoin.enable = true;
       };
-    };
-
-    # Focused JoinMarket initialization and yield-generator integration test.
-    joinmarket = { config, ... }: {
-      imports = [ scenarios.regtestBase ];
-      services.joinmarket.enable = true;
-      services.bitcoind.package = config.nix-bitcoin.pkgs.bitcoind_29;
-    };
-
-    # Keep full regtest coverage with the Bitcoin Core 29 compatibility package.
-    joinmarket-bitcoind-29 = { config, ... }: {
-      imports = [ scenarios.regtest ];
-      services.joinmarket.enable = true;
-      services.bitcoind.package = config.nix-bitcoin.pkgs.bitcoind_29;
     };
 
     cdk-mintd = {

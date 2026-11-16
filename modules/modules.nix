@@ -27,7 +27,6 @@
     ./btcpayserver.nix
     ./cdk-mintd.nix
     ./lnurl-mint.nix
-    ./joinmarket.nix
     ./joinmarket-ob-watcher.nix
     ./hardware-wallets.nix
 

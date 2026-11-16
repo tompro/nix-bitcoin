@@ -101,8 +101,8 @@ NixOS modules ([src](modules/modules.nix))
   * [CDK](https://github.com/cashubtc/cdk): Cashu mint with LND, CLN, and fake wallet backends
   * [lnurl-mint](https://github.com/lnurlcash/lnurl-mint): lnurlcash (LUD-25) bearer-note mint with LND and CLN backends
   * [liquid](https://github.com/elementsproject/elements): federated sidechain
-  * [JoinMarket](https://github.com/joinmarket-org/joinmarket-clientserver)
-    * [JoinMarket Orderbook Watcher](https://github.com/JoinMarket-Org/joinmarket-clientserver/blob/master/docs/orderbook.md)
+  * [JoinMarket Orderbook Watcher](https://github.com/JoinMarket-Org/joinmarket-clientserver/blob/master/docs/orderbook.md)
+    (wallet and yield-generator integration retired; see [migration notes](docs/releases.md#retired-bitcoin-implementations-and-joinmarket-wallet-integration))
   * [bitcoin-core-hwi](https://github.com/bitcoin-core/HWI)
 * Helper
   * [netns-isolation](modules/netns-isolation.nix): isolates applications on the network-level via network namespaces

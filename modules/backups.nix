@@ -52,6 +52,7 @@ let
   # Potential backup file paths are matched against filelist
   # entries from top to bottom.
   # The first match determines inclusion or exclusion.
+  # Keep the retired JoinMarket wallet directory in backups until funds are migrated.
   includeFileList = builtins.toFile "filelist.txt" ''
     ${builtins.concatStringsSep "\n" cfg.extraFiles}
 
@@ -73,7 +74,7 @@ let
     ${optionalString cfg.with-bulk-data "${config.services.electrs.dataDir}"}
     ${config.services.nbxplorer.dataDir}
     ${config.services.btcpayserver.dataDir}
-    ${config.services.joinmarket.dataDir}
+    /var/lib/joinmarket
     ${optionalString config.nix-bitcoin.generateSecrets "${config.nix-bitcoin.secretsDir}"}
     /var/lib/tor
     /var/lib/nixos

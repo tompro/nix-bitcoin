@@ -62,11 +62,8 @@ let
         description = ''
           The package providing bitcoind binaries.
 
-          You can use this option to select other bitcoind-compatible implementations.
-          Example:
-          ```nix
-          services.bitcoind.package = config.nix-bitcoin.pkgs.bitcoind-knots;
-          ```
+          Use Bitcoin Core 30 or later. Bitcoin Knots and Bitcoin Core 29.x
+          are no longer supported.
         '';
       };
       extraConfig = mkOption {
@@ -359,6 +356,18 @@ in {
   inherit options;
 
   config = mkIf cfg.enable {
+    assertions = [
+      {
+        assertion = !(hasInfix "knots" (toLower (getName cfg.package)))
+          && !(hasInfix "knots" (toLower (cfg.package.version or "")));
+        message = "Bitcoin Knots is no longer supported. Select a supported Bitcoin Core package.";
+      }
+      {
+        assertion = versionAtLeast (cfg.package.version or "0") "30";
+        message = "Bitcoin Core versions older than 30 are no longer supported. Remove the old package override and migrate legacy wallets before upgrading.";
+      }
+    ];
+
     environment.systemPackages = [ cfg.package (hiPrio cfg.cli) ];
 
     services.bitcoind = mkMerge [

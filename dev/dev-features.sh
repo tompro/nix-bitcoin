@@ -252,13 +252,6 @@ c ls -al /var/lib/tor/onion/bitcoind
 c ls -al /var/lib/tor/onion/clightning-rest
 
 #―――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――
-# joinmarket
-run-tests.sh -s joinmarket container
-
-c systemctl status joinmarket
-c journalctl -u joinmarket
-
-#―――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――
 # joinmarket-ob-watcher
 
 # This starts a container with WAN access, so that jm-ob-watcher

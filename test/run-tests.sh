@@ -302,7 +302,7 @@ buildable=(
     lndPruned
     wireguard-lndconnect
     trustedcoin
-    joinmarket-bitcoind-29
+    securityUpdates
     cdk-mintd
     cdk-mintd-lnd
     cdk-mintd-cln

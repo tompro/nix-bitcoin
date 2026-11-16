@@ -52,7 +52,13 @@ let
   nbPkgs = config.nix-bitcoin.pkgs;
   secretsDir = config.nix-bitcoin.secretsDir;
 
-  inherit (config.services) bitcoind joinmarket;
+  inherit (config.services) bitcoind;
+  torAddress = config.services.tor.client.socksListenAddress;
+  socks5Settings = {
+    socks5 = true;
+    socks5_host = torAddress.addr;
+    socks5_port = torAddress.port;
+  };
 in {
   inherit options;
 
@@ -74,15 +80,33 @@ in {
       "d '${cfg.dataDir}' 0770 ${cfg.user} ${cfg.group} - -"
     ];
 
-    # Follow JoinMarket's configured messaging networks, including custom
-    # sections, rather than hard-coding names that upstream can retire.
-    services.joinmarket-ob-watcher.settings =
-      filterAttrs (name: _: hasPrefix "MESSAGING:" name) joinmarket.settings // {
-        BLOCKCHAIN = joinmarket.settings.BLOCKCHAIN // {
-          rpc_user = bitcoind.rpc.users.joinmarket-ob-watcher.name;
-          rpc_wallet_file = "";
-        };
+    # The watcher is independent of the retired JoinMarket wallet integration.
+    # Messaging sections must be explicit: upstream removes their defaults.
+    services.joinmarket-ob-watcher.settings = {
+      BLOCKCHAIN = {
+        blockchain_source = bitcoind.makeNetworkName "bitcoin-rpc" "regtest";
+        network = bitcoind.makeNetworkName "mainnet" "testnet";
+        rpc_host = nbLib.address bitcoind.rpc.address;
+        rpc_port = bitcoind.rpc.port;
+        rpc_user = bitcoind.rpc.users.joinmarket-ob-watcher.name;
+        rpc_wallet_file = "";
       };
+      "MESSAGING:onion" = socks5Settings // {
+        type = "onion";
+        tor_control_host = "unix:/run/tor/control";
+        tor_control_port = 9051;
+        onion_serving_host = "127.0.0.1";
+        onion_serving_port = 5222;
+        hidden_service_dir = "";
+        directory_nodes = "satoshi2vcg5e2ept7tjkzlkpomkobqmgtsjzegg6wipnoajadissead.onion:5222,jmarketxf5wc4aldf3slm5u6726zsky52bqnfv6qyxe5hnafgly6yuyd.onion:5222,coinjointovy3eq5fjygdwpkbcdx63d7vd4g32mw7y553uj3kjjzkiqd.onion:5222,nakamotourflxwjnjpnrk7yc2nhkf6r62ed4gdfxmmn5f4saw5q5qoyd.onion:5222,odpwaf67rs5226uabcamvypg3y4bngzmfk7255flcdodesqhsvkptaid.onion:5222";
+      };
+      "MESSAGING:hackint" = socks5Settings // {
+        host = "ncwkrwxpq2ikcngxq3dy2xctuheniggtqeibvgofixpzvrwpa77tozqd.onion";
+        channel = "joinmarket-pit";
+        port = 6667;
+        usessl = false;
+      };
+    };
 
     systemd.services.joinmarket-ob-watcher = rec {
       wantedBy = [ "multi-user.target" ];

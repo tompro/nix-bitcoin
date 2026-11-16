@@ -39,7 +39,6 @@ let self = {
 
   lnurl-mint = pkgs.callPackage ./lnurl-mint { src = lnurl-mint; };
 
-  bitcoind_29 = pkgs.callPackage ./bitcoind_29 {};
   inherit (self.pyPkgs.nbPython3PackagesWithUnlockedEcdsa) hwi;
 
   pyPkgs = import ./python-packages self pkgs.python3;
@@ -50,7 +49,6 @@ let self = {
   fetchNodeModules = pkgs.callPackage ./build-support/fetch-node-modules.nix { };
 
   # Internal pkgs
-  netns-exec = pkgs.callPackage ./netns-exec { };
   krops = import ./krops { inherit pkgs; };
 
   # Deprecated pkgs

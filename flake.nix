@@ -111,7 +111,6 @@
           "fetchNodeModules"
           "krops"
           "modulesPkgs"
-          "netns-exec"
           "nixops19_09"
           "pinned"
           "generate-secrets"

@@ -1,21 +1,18 @@
 { clightning, fetchurl }:
 
-# TODO-EXTERNAL: Remove this override once nixpkgs provides clightning >= 26.06.9
-# (checked 2026-10: nixpkgs master, nixos-unstable and release-26.05 are still
-# at 26.04.1, no bump PR open).
+# TODO-EXTERNAL: Remove this override once nixpkgs provides clightning >= 26.06.10.
+# Security update: fixes dual funding/splicing, on-chain HTLC resolution, gossip
+# resource limits, runes/commando, plugin hooks, remote crashes and more.
+# https://github.com/ElementsProject/lightning/releases/tag/v26.06.10
 #
-# Security update: 26.06.9 fixes vulnerabilities in channel reestablishment,
-# splicing, HTLC/onion handling, runes and more, plus a gossip regression in
-# 26.06.8. Upstream strongly recommends upgrading.
-# https://github.com/ElementsProject/lightning/releases/tag/v26.06.9
-#
-# The src hash matches the SHA256SUMS-v26.06.9 release file.
+# The src hash matches SHA256SUMS-v26.06.10, verified against daywalker90's
+# signature (8A079421A871D0B1083511937AB4802ED5A639F3, upstream SECURITY.md).
 clightning.overrideAttrs (finalAttrs: prev: {
-  version = "26.06.9";
+  version = "26.06.10";
 
   src = fetchurl {
     url = "https://github.com/ElementsProject/lightning/releases/download/v${finalAttrs.version}/clightning-v${finalAttrs.version}.zip";
-    hash = "sha256-rDextsQbbGDPBt2M11APH6sEQRzy87wSaDjYyvq0U40=";
+    hash = "sha256-SRRWHm0QjazKAYPX5rOxwiTFgFl93Ls5cpnvWw/MMjA=";
   };
 
   # devtools/blockreplace.py is invoked directly by doc/Makefile but is not

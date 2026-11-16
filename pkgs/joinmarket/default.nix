@@ -2,7 +2,7 @@
 
 let
   # Note:
-  # After updating this pkg, also update the following items in ../../modules/joinmarket.nix:
+  # After updating this pkg, also update ../../modules/joinmarket-ob-watcher.nix:
   # - The `MESSAGING:*` sections in the config value of option `settings`.
   #   Copy the values from `jmclient/configure.py`.
   version = "0.9.12";

@@ -69,6 +69,56 @@ These mitigate the demonstrated CVE-2026-98432 exploit path but do not fix
 the kernel: update the host kernel and reboot. See
 [deployment and verification instructions](services.md#lnd-linux-kernel-mptcp-mitigation).
 
+## November 2026 security updates
+
+BTCPay Server stays at 2.4.7, but its local .NET/ASP.NET runtime is upgraded to
+10.0.15 and its build SDK to 10.0.404. This fixes
+[CVE-2026-114146](https://github.com/dotnet/aspnetcore/security/advisories/GHSA-67wp-ghc2-fw2g)
+(SignalR authorization). Both the runtime and SDK remain pinned until nixpkgs
+provides the patched versions. Restart/redeploy BTCPay and verify its running
+runtime; updating source pins alone does not update a live process. Test login,
+authorization and any SignalR integrations after deployment.
+
+Core Lightning is upgraded to
+[26.06.10](https://github.com/ElementsProject/lightning/releases/tag/v26.06.10),
+which fixes funding/splicing, on-chain HTLC handling, resource limits,
+runes/commando and remote crashes. Back up wallet/channel state before deploying.
+Review issued runes: restrict commando runes to their client node IDs and revoke
+unaccounted-for runes. Dual funding remains experimental. Review upstream's
+operator notes for channel-open restrictions, plugin behavior and database
+compatibility; nodes using newer development schemas must not downgrade to this
+release.
+
+## Retired Bitcoin implementations and JoinMarket wallet integration
+
+Bitcoin Knots and Bitcoin Core 29.x support have been removed, not upgraded.
+The `bitcoind-knots` and `bitcoind_29` nix-bitcoin package exports are gone.
+Enabled bitcoind configurations reject Knots and Core versions older than 30,
+including explicit package overrides. Remove old overrides to use the supported
+default (currently Bitcoin Core 32.1).
+
+The JoinMarket wallet/yield-generator module was the only Core 29 consumer and
+has also been removed, together with its privileged `netns-exec` helper.
+Configurations using `services.joinmarket` now fail with migration guidance;
+remove those settings. The independent orderbook watcher remains supported with
+current Core. Move any watcher messaging customizations from
+`services.joinmarket.settings` to `services.joinmarket-ob-watcher.settings`.
+
+**Before deployment:** stop the JoinMarket wallet/yield-generator services and
+securely back up the entire JoinMarket data directory (default
+`/var/lib/joinmarket`), including `wallets/wallet.jmdat`, `jm-wallet-seed`, and
+`$secretsDir/jm-wallet-password`. Back up Bitcoin's wallets and chain data too.
+Do not delete these files or assume that upgrading Core migrates JoinMarket
+wallets or transfers funds. Arrange recovery/migration of existing funds using
+independently maintained tooling; this release performs no wallet conversion.
+The default JoinMarket directory stays in the backup file list. If you used a
+custom directory, explicitly retain it via `services.backups.extraFiles`.
+
+Review upstream Core/Knots upgrade guidance before reusing an existing data
+directory, including legacy-wallet migration and any consensus-fix recheck or
+reindex requirements. Removing package support neither repairs existing chain
+state nor updates running hosts; verify the deployed daemon version separately.
+
 ## Upgrade reminders for the initial maintained-fork update
 
 The dependency/configuration changes in PR #20 require operator review even
@@ -83,6 +133,6 @@ though releases are automatic:
   Wallet clients must support it; legacy registrations retain their old
   derivation until explicitly migrated. Consult the pinned upstream README.
 - CDK's older 0.17-to-0.18 database migration requirements still apply.
-- Bitcoin Core 29.x is EOL; the named `bitcoind_29` compatibility package remains.
+- Bitcoin Core 29.x is EOL; its compatibility package has now been removed (see above).
 - electrs stays at the compatible 0.11 package. Moving to 0.12 needs REST
   integration and an index rebuild, not an automatic package bump.
