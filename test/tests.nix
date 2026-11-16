@@ -347,6 +347,8 @@ let
       imports = [ scenarios.regtestBase ];
       services.btcpayserver.enable = true;
       services.clightning.enable = true;
+      # clnrest shares Core Lightning's source and Cargo lockfile.
+      services.clightning.plugins.clnrest.enable = true;
       test.features.clightningPlugins = true;
     };
 
