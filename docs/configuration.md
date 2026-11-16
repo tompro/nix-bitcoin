@@ -169,11 +169,8 @@ Some services require extra steps:
   sudo -u postgres psql btcpaydb < export.sql
   ```
 
-- joinmarket
-
-  Copy your wallet to `/var/lib/joinmarket/wallets/wallet.jmdat`.\
-  Write your wallet password, without a trailing newline, to
-  `$secretsDir/jm-wallet-password` (See: [Secrets dir](#secrets-dir)).
+The JoinMarket wallet integration is retired. Do not import wallets into this
+node for automatic use; follow the [retirement and backup guidance](releases.md#retired-bitcoin-implementations-and-joinmarket-wallet-integration).
 
 # Use bitcoind from another node
 

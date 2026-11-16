@@ -476,125 +476,26 @@ lndconnect-wg --url
 
 # JoinMarket
 
-## Diff to regular JoinMarket usage
+The wallet and yield-generator integration has been retired because it required
+Bitcoin Core 29's legacy wallets. See the
+[retirement and backup guidance](releases.md#retired-bitcoin-implementations-and-joinmarket-wallet-integration)
+before upgrading an existing installation. Wallet files are not deleted or
+migrated automatically.
 
-For clarity reasons, nix-bitcoin renames all scripts to `jm-*` without `.py`, for
-example `wallet-tool.py` becomes `jm-wallet-tool`. The rest of this section
-details nix-bitcoin specific workflows for JoinMarket.
+## Orderbook watcher
 
-## Wallets
+The independent, non-wallet orderbook watcher remains available:
 
-By default, a wallet is automatically generated at service startup.
-It's stored at `/var/lib/joinmarket/wallets/wallet.jmdat`, and its mnmenoic recovery
-seed phrase is stored at `/var/lib/joinmarket/jm-wallet-seed`.
+```nix
+services.joinmarket-ob-watcher.enable = true;
+```
 
-A missing wallet file is automatically recreated if the seed file is still present.
-
-If you want to manually initialize your wallet instead, follow these steps:
-
-1. Enable JoinMarket in your node configuration
-
-    ```
-    services.joinmarket.enable = true;
-    ```
-
-2. Move the automatically generated `wallet.jmdat`
-
-    ```console
-    mv /var/lib/joinmarket/wallet.jmdat /var/lib/joinmarket/bak.jmdat
-    ```
-
-3. Generate wallet on your node
-
-    ```console
-    jm-wallet-tool generate
-    ```
-    Follow the on-screen instructions and write down your seed.
-
-    In order to use nix-bitcoin's `joinmarket.yieldgenerator`, use the password
-    from `$secretsDir/jm-wallet-password` and use the suggested default wallet name
-    `wallet.jmdat`. If you want to use your own `jm-wallet-password`, simply
-    replace the password string in your local secrets directory.
-    See: [Secrets dir](./configuration.md#secrets-dir)
-
-## Run the tumbler
-
-The tumbler needs to be able to run in the background for a long time, use screen
-to run it accross SSH sessions. You can also use tmux in the same fashion.
-
-1. Add screen to your `environment.systemPackages`, for example
-
-    ```
-    environment.systemPackages = with pkgs; [
-      vim
-      screen
-    ];
-    ```
-
-2. Start the screen session
-
-    ```console
-    screen -S "tumbler"
-    ```
-
-3. Start the tumbler
-
-    Example: Tumbling into your wallet after buying from an exchange to improve privacy:
-
-    ```console
-    jm-tumbler wallet.jmdat <addr1> <addr2> <addr3>
-    ```
-
-    After tumbling your bitcoin end up in these three addresses. You can now
-    spend them without the exchange collecting data on your purchases.
-
-    Get more information [here](https://github.com/JoinMarket-Org/joinmarket-clientserver/blob/master/docs/tumblerguide.md)
-
-4. Detach the screen session to leave the tumbler running in the background
-
-    ```
-    Ctrl-a d or Ctrl-a Ctrl-d
-    ```
-
-5. Re-attach to the screen session
-
-    ```console
-    screen -r tumbler
-    ```
-
-6. End screen session
-
-    Type exit when tumbler is done
-
-    ```console
-    exit
-    ```
-
-## Run a "maker" or "yield generator"
-
-The maker/yield generator in nix-bitcoin is implemented using a systemd service.
-
-See [here](https://github.com/JoinMarket-Org/joinmarket-clientserver/blob/master/docs/YIELDGENERATOR.md) for more yield generator information.
-
-1. Enable yield generator bot in your node configuration
-
-    ```
-    services.joinmarket.yieldgenerator = {
-      enable = true;
-      # Optional: Add custom parameters
-      cjfee_a = 300;
-      cjfee_r = 0.00003;
-    };
-    '';
-    ```
-
-2. Check service status
-
-    ```console
-    systemctl status joinmarket-yieldgenerator
-    ```
-
-3. Profit
+It uses the supported default Bitcoin Core package and connects over Tor.
+Configure messaging sections directly in
+`services.joinmarket-ob-watcher.settings."MESSAGING:…"`; they no longer inherit
+from the removed `services.joinmarket.settings` option. The defaults include
+onion messaging and hackint. The `joinmarket` package is retained for this
+watcher; its presence does not restore the retired wallet integration.
 
 # clightning
 

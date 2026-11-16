@@ -7,9 +7,9 @@
 }:
 
 let
-  # TODO-EXTERNAL: Remove once the locked nixpkgs provides .NET >= 10.0.14.
-  # BTCPay Server's framework-dependent build needs the patched runtime as well
-  # as the application update to fix CVE-2026-111497 (Brotli decoder).
+  # TODO-EXTERNAL: Remove once the locked nixpkgs provides .NET >= 10.0.15.
+  # BTCPay Server's framework-dependent build needs the patched ASP.NET runtime
+  # as well as the SDK to fix CVE-2026-114146 (SignalR authorization).
   dotnet = dotnetCorePackages.buildDotnetSdk ./dotnet-packages.nix;
 in
 buildDotnetModule rec {

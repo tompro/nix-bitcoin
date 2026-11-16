@@ -30,14 +30,13 @@ in {
     mempool = defaultEnableTorProxy;
 
     # These services don't make outgoing connections
-    # (or use Tor by default in case of joinmarket)
+    # (or use Tor by default in case of joinmarket-ob-watcher)
     # but we restrict them to Tor just to be safe.
     #
     electrs = defaultEnforceTor;
     fulcrum = defaultEnforceTor;
     nbxplorer = defaultEnforceTor;
     rtl = defaultEnforceTor;
-    joinmarket = defaultEnforceTor;
     joinmarket-ob-watcher = defaultEnforceTor;
     clightning-rest = defaultEnforceTor;
     cdk-mintd = defaultEnforceTor;

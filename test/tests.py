@@ -287,6 +287,20 @@ def _():
     )
     # Test web server response
     assert_matches(f"curl -fsS -L {ip('btcpayserver')}:23000", "Welcome to BTCPay Server")
+    # Smoke-test the login page, API authorization boundary and both public
+    # SignalR negotiation endpoints after upgrading the ASP.NET runtime.
+    base_url = f"http://{ip('btcpayserver')}:23000"
+    assert_matches(f"curl -fsS {base_url}/login", 'name="Password"')
+    assert_full_match(
+        f"curl -sS -o /dev/null -w '%{{http_code}}' {base_url}/api/v1/stores", "401"
+    )
+    for hub in ("apps", "payment-requests"):
+        negotiation = json.loads(succeed(
+            f"curl -fsS -X POST -d '' '{base_url}/{hub}/hub/negotiate?negotiateVersion=1'"
+        ))
+        assert negotiation["negotiateVersion"] == 1
+        assert negotiation["connectionToken"]
+        assert any(t["transport"] == "WebSockets" for t in negotiation["availableTransports"])
     if test_data["btcpayserver-nbxplorer-stats"]:
         # The env var must reach the service as a single, correctly quoted value
         assert_matches(
@@ -416,28 +430,6 @@ def _():
         backup_location = test_data["lnurl-mint-backup-location"]
         succeed(f"ls {backup_location}/lnurl-mint-*.sqlite")
 
-@test("joinmarket")
-def _():
-    assert_running("joinmarket")
-    machine.wait_until_succeeds(
-        log_has_string("joinmarket", "JMDaemonServerProtocolFactory starting on 27183")
-    )
-    # Keep testing the legacy wallet integration until descriptor migration
-    # and upstream regtest's watch-only wallet handling are addressed.
-    wallet_info = json.loads(succeed("runuser -u operator -- bitcoin-cli -rpcwallet=jm_wallet getwalletinfo"))
-    assert wallet_info["descriptors"] is False
-    # Regtest deliberately enables keys for test funding; real networks do not.
-    assert wallet_info["private_keys_enabled"] is ("regtest" in enabled_tests)
-
-@test("joinmarket-yieldgenerator")
-def _():
-    if "regtest" in enabled_tests:
-        expected_log_msg = "You do not have the minimum required amount of coins to be a maker"
-    else:
-        expected_log_msg = "Critical error updating blockheight."
-
-    machine.wait_until_succeeds(log_has_string("joinmarket-yieldgenerator", expected_log_msg))
-
 @test("joinmarket-ob-watcher")
 def _():
     assert_running("joinmarket-ob-watcher")
@@ -488,27 +480,8 @@ def _():
         f"nc -l {ip('bitcoind')} 1080 2>&1 || true", "nc: Cannot assign requested address"
     )
 
-    # netns-exec should fail for unauthorized namespaces
-    assert_matches(
-        "runuser -u operator -- netns-exec nb-clightning ip a 2>&1 || true",
-        "nb-clightning is not an allowed netns",
-    )
-
-    # netns-exec should only be executable by the operator user.
-    # User `unauthorized` is a member of group `users`, like all normal users.
-    # Netns `nb-clightning` is rejected by netns-exec before it accesses the
-    # netns, so the error below can only originate from the exec permissions.
-    assert_matches(
-        "runuser -u unauthorized -- netns-exec nb-clightning ip a 2>&1 || true",
-        "Permission denied",
-    )
-
-    if "joinmarket" in enabled_tests:
-        # netns-exec should drop capabilities
-        assert_matches(
-            "runuser -u operator -- netns-exec nb-joinmarket capsh --print | grep Current",
-            re.compile("^Current: =$", re.MULTILINE),
-        )
+    # The retired wallet service was the only consumer of this privileged helper.
+    machine.fail("test -e /run/wrappers/bin/netns-exec")
 
 
 # Impure: stops bitcoind (and dependent services)
@@ -532,7 +505,6 @@ def _():
         "bitcoind": "var/lib/bitcoind/test/wallet.dat",
         "clightning": "var/lib/clightning/bitcoin/hsm_secret",
         "lnd": "var/lib/lnd/lnd-seed-mnemonic",
-        "joinmarket": "var/lib/joinmarket/jm-wallet-seed",
         "btcpayserver": "var/backup/postgresql/btcpaydb.sql.gz",
     }
     actual_files = succeed(f"{run_duplicity} list-current-files file:///var/lib/localBackups")

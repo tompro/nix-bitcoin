@@ -11,7 +11,6 @@ pkgs: pkgsUnstable:
     lndconnect;
 
   inherit (pkgsUnstable)
-    bitcoind-knots
     btcpayserver
     clboss
     clightning

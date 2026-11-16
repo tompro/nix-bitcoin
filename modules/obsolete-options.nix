@@ -117,11 +117,19 @@ in {
     [ "summary" "helpme" "prometheus" ]
   )
   ++
-  # 0.0.110
   [
-    (mkRemovedOptionModule [ "services" "joinmarket" "yieldgenerator" "txfee" ] ''
-      Option `txfee` has been removed in joinmarket 0.9.3:
-      https://github.com/JoinMarket-Org/joinmarket-clientserver/blob/v0.9.3/docs/release-notes/release-notes-0.9.3.md
+    (mkRemovedOptionModule [ "nix-bitcoin" "netns-isolation" "allowedUser" ] ''
+      The privileged netns-exec helper has been removed with its only consumer,
+      the JoinMarket wallet integration. Use root's ip netns exec for maintenance.
+    '')
+    (mkRemovedOptionModule [ "services" "joinmarket" ] ''
+      The JoinMarket wallet and yield-generator integration has been removed
+      together with Bitcoin Core 29 support. Back up your wallet, recovery seed
+      and password before upgrading; no wallet migration is performed.
+      See docs/releases.md for migration guidance.
+      The independent orderbook watcher remains available via
+      services.joinmarket-ob-watcher; configure its messaging networks directly
+      in services.joinmarket-ob-watcher.settings.
     '')
   ];
 

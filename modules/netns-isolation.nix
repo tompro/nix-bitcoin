@@ -33,14 +33,6 @@ let
       });
     };
 
-    allowedUser = mkOption {
-      type = types.str;
-      description = ''
-        User that is allowed to execute commands in the service network namespaces.
-      '';
-      default = config.nix-bitcoin.operator.name;
-    };
-
     netns = mkOption {
       readOnly = true;
       default = netns;
@@ -94,8 +86,6 @@ let
   iptables = "${config.networking.firewall.package}/bin/iptables";
 
   bridgeIp = "169.254.${toString cfg.addressblock}.10";
-
-  mkCliExec = service: "exec netns-exec ${netns.${service}.netnsName}";
 in {
   inherit options;
 
@@ -116,16 +106,6 @@ in {
       config.services.i2pd.proto.sam.port
     ];
     boot.kernel.sysctl."net.ipv4.ip_forward" = true;
-
-    security.wrappers.netns-exec = {
-      source = config.nix-bitcoin.pkgs.netns-exec;
-      capabilities = "cap_sys_admin=ep";
-      owner = cfg.allowedUser;
-      # Don't authorize the group of `owner`. For normal users, this group is
-      # `users`, which is shared by all normal users.
-      group = "root";
-      permissions = "500";
-    };
 
     systemd.services = {
       # Due to a NixOS bug we can't currently use option `networking.bridges` to
@@ -264,10 +244,7 @@ in {
                       ++ optional config.services.btcpayserver.lbtc "liquidd";
         # communicates with clightning over rpc socket
       };
-      joinmarket = {
-        id = 25;
-        connections = [ "bitcoind" ];
-      };
+      # id 25 was used by the retired JoinMarket wallet service.
       joinmarket-ob-watcher = {
         id = 26;
         connections = [ "bitcoind" ];
@@ -351,15 +328,6 @@ in {
 
     services.nbxplorer.address = netns.nbxplorer.address;
     services.btcpayserver.address = netns.btcpayserver.address;
-
-    services.joinmarket = mkIf config.services.joinmarket.enable {
-      payjoinAddress = netns.joinmarket.address;
-      messagingAddress = netns.joinmarket.address;
-      cliExec = mkCliExec "joinmarket";
-    };
-    systemd.services.joinmarket-yieldgenerator = mkIf config.services.joinmarket.yieldgenerator.enable {
-      serviceConfig.NetworkNamespacePath = "/var/run/netns/nb-joinmarket";
-    };
 
     services.joinmarket-ob-watcher.address = netns.joinmarket-ob-watcher.address;
 
